@@ -7,5 +7,6 @@
 	, "url": "https://github.com/dregu/orangebot" }
 , "dependencies":
 	{ "named-regexp": "latest"
-	, "simple-rcon": "latest" }
+	, "simple-rcon": "latest"
+	, "ip": "latest" }
 }

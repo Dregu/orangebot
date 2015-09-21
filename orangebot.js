@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
-var myip = '5.6.7.8';
+var myip = require('ip').address();
 var myport = '1337';
 var admins = ['STEAM_1:0:4534656'];
 var servers = {};
@@ -12,7 +12,6 @@ var rcon = require('simple-rcon');
 var dns = require('dns');
 var dgram = require('dgram');
 var s = dgram.createSocket('udp4');
-var servers = {};
 
 s.on('message', function(msg, info) {
 	var addr = info.address+':'+info.port;
@@ -355,6 +354,11 @@ setInterval(function () {
 	}
 }, 100);
 s.bind(myport);
-console.log('Listening on '+myport);
+console.log('OrangeBot listening on '+myport);
+console.log('Run this in CS console to connect or configure orangebot.js:');
+console.log('connect YOUR_SERVER;password YOUR_PASS;rcon sv_rcon_whitelist_address '+myip+';rcon logaddress_add '+myip+':'+myport+';rcon log on;rcon rcon_password YOUR_RCON')
 
+///////////////////////////////////////////////////////////////////////////////
+
+// Define static servers here. Use numeric ip's.
 //servers['1.2.3.4:27015'] = new Server('1.2.3.4:27015', 'rconpass');
