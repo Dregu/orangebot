@@ -214,7 +214,7 @@ function Server (address, pass, adminip) {
 			if(this.state.map != maps[0]) {
 				this.rcon('changelevel '+this.state.maps[0]);
 			} else {
-				this.newmap(maps[0]);
+				this.newmap(maps[0], 1);
 			}
 		} else {
 			this.newmap(this.state.maps[0]);
@@ -263,7 +263,8 @@ function Server (address, pass, adminip) {
 			}
 		}
 	}
-	this.newmap = function (map) {
+	this.newmap = function (map, delay) {
+		if(delay === undefined) delay = 5000;
 		var index = -1;
 		if (this.state.maps.indexOf(map) >= 0) {
 			index = this.state.maps.indexOf(map);
@@ -280,7 +281,7 @@ function Server (address, pass, adminip) {
 			}
 			tag.stats(false);
 			tag.warmup();
-		}, 1);
+		}, delay);
 	}
 	this.knife = function () {
 		if(this.state.live) return;
