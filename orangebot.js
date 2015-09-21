@@ -1,10 +1,20 @@
+///////////////////////////////////////////////////////////////////////////////
+
+var admins = ['STEAM_1:0:foobar'];
+var servers = {
+	//'1.2.3.4:27015': new Server('1.2.3.4:27015', 'ducksauce');
+};
+var myip = '1.2.3.4';
+var myport = '1337';
+
+///////////////////////////////////////////////////////////////////////////////
+
 var named = require('named-regexp').named;
 var rcon = require('simple-rcon');
 var dns = require('dns');
 var dgram = require('dgram');
 var s = dgram.createSocket('udp4');
-var matches = {};
-var admins = ['STEAM_1:0:foobar'];
+var servers = {};
 
 s.on('message', function(msg, info) {
 	var addr = info.address+':'+info.port;
@@ -12,59 +22,59 @@ s.on('message', function(msg, info) {
 	var re = named(/rcon from "(:<user_ip>[\d\.]+?):\d+": command "rcon_password (:<rcon_pass>.*)"/);
 	var match = re.exec(text);
 	if(match != null) {
-		if(matches[addr] !== undefined) {
-			delete matches[addr];
+		if(servers[addr] !== undefined) {
+			delete servers[addr];
 		}
-		matches[addr] = new Match(addr, match.captures.rcon_pass[0], match.captures.user_ip[0]);
+		servers[addr] = new Server(addr, match.captures.rcon_pass[0], match.captures.user_ip[0]);
 	}
-	if (matches[addr] === undefined) {
+	if (servers[addr] === undefined) {
 		return;
 	}
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*)[>][<](:<user_team>CT|TERRORIST|Unassigned|Spectator)[>]" say "[!\.](:<text>.*)"/);
 	match = re.exec(text);
 	if(match != null) {
-		var isadmin = matches[addr].admin(match.captures.steam_id[0]);
+		var isadmin = servers[addr].admin(match.captures.steam_id[0]);
 		var param = match.captures.text[0].split(' ');
 		var cmd = param[0];
 		param.shift();
 		switch(cmd) {
 			case 'stats':
 			case 'score':
-				matches[addr].stats(true);
+				servers[addr].stats(true);
 				break;
 			case 'reset':
 			case 'warmup':
-				if (isadmin) matches[addr].warmup();
+				if (isadmin) servers[addr].warmup();
 				break;
 			case 'map':
 			case 'start':
-				if (isadmin) matches[addr].start(param);
+				if (isadmin) servers[addr].start(param);
 				break;
 			case 'force':
-				if (isadmin) matches[addr].ready(true);
+				if (isadmin) servers[addr].ready(true);
 				break;
 			case 'ready':
 			case 'unpause':
-				matches[addr].ready(match.captures.user_team[0]);
+				servers[addr].ready(match.captures.user_team[0]);
 				break;
 			case 'pause':
-				matches[addr].pause();
+				servers[addr].pause();
 				break;
 			case 'stay':
-				matches[addr].stay(match.captures.user_team[0]);
+				servers[addr].stay(match.captures.user_team[0]);
 				break;
 			case 'swap':
 			case 'switch':
-				matches[addr].swap(match.captures.user_team[0]);
+				servers[addr].swap(match.captures.user_team[0]);
 				break;
 			case 'knife':
-				if (isadmin) matches[addr].knife();
+				if (isadmin) servers[addr].knife();
 				break;
 			case 'disconnect':
 			case 'quit':
 				if (isadmin) {
-					matches[addr].quit();
-					delete matches[addr];
+					servers[addr].quit();
+					delete servers[addr];
 					console.log('Disconnected from '+addr);
 				}
 			default:
@@ -73,17 +83,17 @@ s.on('message', function(msg, info) {
 	re = named(/Started map "(:<map>.*?)"/);
 	match = re.exec(text);
 	if(match != null) {
-		matches[addr].newmap(match.captures.map[0]);
+		servers[addr].newmap(match.captures.map[0]);
 	}
 	re = named(/Team "(:<team>.*)" triggered "SFUI_Notice_(:<team_win>Terrorists_Win|CTs_Win|Target_Bombed|Target_Saved|Bomb_Defused)" \(CT "(:<ct_score>\d+)"\) \(T "(:<t_score>\d+)"\)/);
 	match = re.exec(text);
 	if(match != null) {
 		var score = { 'TERRORIST': parseInt(match.captures.t_score[0]), 'CT': parseInt(match.captures.ct_score[0]) };
-		matches[addr].score(score);
+		servers[addr].score(score);
 	}
 });
 
-function Match (address, pass, adminip) {
+function Server (address, pass, adminip) {
 	var tag = this;
 	this.state = {
 		ip: address.split(':')[0],
@@ -149,7 +159,6 @@ function Match (address, pass, adminip) {
 		this.state.unpause = { 'TERRORIST': false, 'CT': false };
 	}
 	this.status = function () {
-		var tag = this;
 		var conn = new rcon(
 			{ host: this.state.ip, port: this.state.port, password: this.state.pass }
 		).on('error', function (err) {
@@ -226,7 +235,6 @@ function Match (address, pass, adminip) {
 				this.rcon('say \x10' + ( this.state.ready['TERRORIST'] ? 'Terrorists' : 'Counter-Terrorists' ) + ' are \x04!ready\x10, waiting for ' + ( this.state.ready['TERRORIST'] ? 'Counter-Terrorists' : 'Terrorists' ) + '.');
 			} else if (this.state.ready['TERRORIST'] == true && this.state.ready['CT'] == true) {
 				this.state.live = true;
-				var tag = this;
 				var demo = new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').replace(/\..+/, '')+'_'+this.state.map;
 				if(this.state.knife) {
 					this.rcon('mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;mp_maxmoney 0;mp_t_default_secondary "";mp_ct_default_secondary "";mp_free_armor 1;mp_give_player_c4 0;tv_record '+demo+';say \x10Both teams are \x04!ready\x10, starting knife round in:;say \x085...');
@@ -260,7 +268,7 @@ function Match (address, pass, adminip) {
 			}
 			tag.stats(false);
 			tag.warmup();
-		}, 5000);
+		}, 1);
 	}
 	this.knife = function () {
 		if(this.state.live) return;
@@ -303,24 +311,27 @@ function Match (address, pass, adminip) {
 		this.state.knife = false;
 		this.rcon('game_type 0;game_mode 1;ammo_grenade_limit_default 1;ammo_grenade_limit_flashbang 2;ammo_grenade_limit_total 4;bot_quota 0;cash_player_bomb_defused 300;cash_player_bomb_planted 300;cash_player_damage_hostage -30;cash_player_interact_with_hostage 150;cash_player_killed_enemy_default 300;cash_player_killed_enemy_factor 1;cash_player_killed_hostage -1000;cash_player_killed_teammate -300;cash_player_rescued_hostage 1000;cash_team_elimination_bomb_map 3250;cash_team_hostage_alive 150;cash_team_hostage_interaction 150;cash_team_loser_bonus 1400;cash_team_loser_bonus_consecutive_rounds 500;cash_team_planted_bomb_but_defused 800;cash_team_rescued_hostage 750;cash_team_terrorist_win_bomb 3500;cash_team_win_by_defusing_bomb 3500;cash_team_win_by_hostage_rescue 3500;cash_player_get_killed 0;cash_player_respawn_amount 0;cash_team_elimination_hostage_map_ct 2000;cash_team_elimination_hostage_map_t 1000;cash_team_win_by_time_running_out_bomb 3250;cash_team_win_by_time_running_out_hostage 3250;ff_damage_reduction_grenade 0.85;ff_damage_reduction_bullets 0.33;ff_damage_reduction_other 0.4;ff_damage_reduction_grenade_self 1;mp_afterroundmoney 0;mp_autokick 0;mp_autoteambalance 0;mp_buytime 15;mp_c4timer 35;mp_death_drop_defuser 1;mp_death_drop_grenade 2;mp_death_drop_gun 1;mp_defuser_allocation 0;mp_do_warmup_period 1;mp_forcecamera 1;mp_force_pick_time 160;mp_free_armor 0;mp_freezetime 12;mp_friendlyfire 1;mp_halftime 1;mp_halftime_duration 15;mp_join_grace_time 30;mp_limitteams 0;mp_logdetail 3;mp_match_can_clinch 1;mp_match_end_changelevel 1;mp_match_end_restart 0;mp_match_restart_delay 120;mp_maxmoney 65535;mp_maxrounds 30;mp_molotovusedelay 0;mp_overtime_enable 1;mp_overtime_maxrounds 6;mp_overtime_startmoney 10000;mp_playercashawards 1;mp_playerid 0;mp_playerid_delay 0.5;mp_playerid_hold 0.25;mp_round_restart_delay 5;mp_roundtime 1.75;mp_roundtime_defuse 1.75;mp_solid_teammates 1;mp_startmoney 800;mp_teamcashawards 1;mp_teammatchstat_holdtime 0;mp_teammatchstat_txt "";mp_timelimit 0;mp_tkpunish 0;mp_weapons_allow_map_placed 1;mp_weapons_allow_zeus 1;mp_win_panel_display_time 15;spec_freeze_time 5.0;spec_freeze_panel_extended_time 0;sv_accelerate 5.5;sv_stopspeed 80;sv_allow_votes 0;sv_allow_wait_command 0;sv_alltalk 0;sv_alternateticks 0;sv_cheats 0;sv_clockcorrection_msecs 15;sv_consistency 0;sv_contact 0;sv_damage_print_enable 0;sv_dc_friends_reqd 0;sv_deadtalk 0;sv_forcepreload 0;sv_friction 5.2;sv_full_alltalk 0;sv_gameinstructor_disable 1;sv_ignoregrenaderadio 0;sv_kick_players_with_cooldown 0;sv_kick_ban_duration 0;sv_lan 0;sv_log_onefile 0;sv_logbans 1;sv_logecho 0;sv_logfile 1;sv_logflush 0;sv_logsdir logfiles;sv_maxrate 0;sv_mincmdrate 30;sv_minrate 20000;sv_competitive_minspec 1;sv_competitive_official_5v5 1;sv_pausable 1;sv_pure 1;sv_pure_kick_clients 1;sv_pure_trace 0;sv_spawn_afk_bomb_drop_time 30;sv_steamgroup_exclusive 0;mp_unpause_match;mp_warmuptime 15;mp_warmup_start;mp_warmup_pausetimer 1;say \x10Match will start when both teams are \x04!ready\x10.');
 	}
-	setInterval(function () {
-		if(!tag.state.live) {
-			tag.rcon('say \x10Match will start when both teams are \x04!ready\x10.');
-		} else if(tag.state.paused) {
-			tag.rcon('say \x10Match will resume when both teams are \x04!ready\x10.');
-		}
-	}, 30000);
-	setInterval(function () {
-		if(tag.state.queue.length > 0) {
-			var cmd = tag.state.queue.shift();
-			tag.realrcon(cmd);
-		}
-	}, 100)
-	this.rcon('sv_rcon_whitelist_address 95.85.2.171;logaddress_add 95.85.2.171:1337;log on');
+	this.rcon('sv_rcon_whitelist_address '+myip+';logaddress_add '+myip+':'+myport+';log on');
 	this.status();
 	console.log('Connected to '+this.state.ip+':'+this.state.port+', pass '+this.state.pass);
 }
-s.bind(1337);
-console.log('Listening on 1337');
-
-//matches['1.2.3.4:27015'] = new Match('1.2.3.4:27015', 'ducksauce');
+setInterval(function () {
+	for(var i in servers) {
+		if(!servers[i].state.live) {
+			servers[i].rcon('say \x10Match will start when both teams are \x04!ready\x10.');
+		} else if(servers[i].state.paused) {
+			servers[i].rcon('say \x10Match will resume when both teams are \x04!ready\x10.');
+		}	
+		console.log(servers[i].state);
+	}
+}, 30000);
+setInterval(function () {
+	for(var i in servers) {
+		if(servers[i].state.queue.length > 0) {
+			var cmd = servers[i].state.queue.shift();
+			servers[i].realrcon(cmd);
+		}
+	}
+}, 100);
+s.bind(myport);
+console.log('Listening on '+myport);
