@@ -1,11 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
-var admins = ['STEAM_1:0:foobar'];
-var servers = {
-	//'1.2.3.4:27015': new Server('1.2.3.4:27015', 'ducksauce');
-};
-var myip = '1.2.3.4';
+var myip = '5.6.7.8';
 var myport = '1337';
+var admins = ['STEAM_1:0:4534656'];
+var servers = {};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -38,21 +36,28 @@ s.on('message', function(msg, info) {
 		var cmd = param[0];
 		param.shift();
 		switch(cmd) {
+			case 'status':
 			case 'stats':
 			case 'score':
+			case 'scores':
 				servers[addr].stats(true);
 				break;
+			case 'restart':
 			case 'reset':
 			case 'warmup':
 				if (isadmin) servers[addr].warmup();
 				break;
+			case 'maps':
 			case 'map':
 			case 'start':
+			case 'match':
+			case 'startmatch':
 				if (isadmin) servers[addr].start(param);
 				break;
 			case 'force':
 				if (isadmin) servers[addr].ready(true);
 				break;
+			case 'resume':
 			case 'ready':
 			case 'unpause':
 				servers[addr].ready(match.captures.user_team[0]);
@@ -72,11 +77,16 @@ s.on('message', function(msg, info) {
 				break;
 			case 'disconnect':
 			case 'quit':
+			case 'leave':
 				if (isadmin) {
 					servers[addr].quit();
 					delete servers[addr];
 					console.log('Disconnected from '+addr);
 				}
+				break;
+			case 'debug':
+				if (isadmin) servers[addr].debug();
+				break;
 			default:
 		}
 	}
@@ -154,7 +164,7 @@ function Server (address, pass, adminip) {
 	}
 	this.pause = function () {
 		if (!this.state.live) return;
-		this.rcon('mp_pause_match;say \x10Pausing match in next round.');
+		this.rcon('mp_pause_match;say \x10Pausing match on freeze time!');
 		this.state.paused = true;
 		this.state.unpause = { 'TERRORIST': false, 'CT': false };
 	}
@@ -218,9 +228,11 @@ function Server (address, pass, adminip) {
 			} else {
 				this.state.unpause[team] = true;
 			}
-			if (this.state.unpause['TERRORIST'] == true && this.state.unpause['CT'] == true) {
+			if (this.state.unpause['TERRORIST'] != this.state.unpause['CT']) {
+				this.rcon('say \x10' + ( this.state.unpause['TERRORIST'] ? 'Terrorists' : 'Counter-Terrorists' ) + ' are \x04!ready\x10, waiting for ' + ( this.state.unpause['TERRORIST'] ? 'Counter-Terrorists' : 'Terrorists' ) + '.')
+			} else if (this.state.unpause['TERRORIST'] == true && this.state.unpause['CT'] == true) {
 				this.rcon('mp_unpause_match');
-				this.rcon('say \x10Resuming match!')
+				this.rcon('say \x10Both teams are \x04!ready\x10, resuming match!')
 				this.state.paused = false;
 				this.state.unpause = { 'TERRORIST': false, 'CT': false };
 			}	
@@ -272,8 +284,13 @@ function Server (address, pass, adminip) {
 	}
 	this.knife = function () {
 		if(this.state.live) return;
-		this.state.knife = true;
-		this.rcon('say \x10Knife round will start when both teams are \x04!ready\x10.');
+		if(!this.state.knife) {
+			this.state.knife = true;
+			this.rcon('say \x10Knife round will start when both teams are \x04!ready\x10.');
+		} else {
+			this.state.knife = false;
+			this.rcon('say \x10Cancelled knife round.');
+		}
 	}
 	this.score = function (score) {
 		this.state.score[this.state.map] = score;
@@ -302,6 +319,10 @@ function Server (address, pass, adminip) {
 		this.rcon('logaddress_delall;log off');
 		this.rcon('say \x10I\'m outta here!');
 	}
+	this.debug = function () {
+		this.rcon('say \x10live: '+this.state.live+' paused: '+this.state.paused+' knife: '+this.state.knife+' knifewinner: '+this.state.knifewinner+' ready: T:'+this.state.ready['TERRORIST']+' CT:'+this.state.ready['CT']+' unpause: T:'+this.state.unpause['TERRORIST']+' CT:'+this.state.unpause['CT']);
+		this.stats(true);
+	}
 	this.warmup = function () {
 		this.state.ready = { 'TERRORIST': false, 'CT': false };
 		this.state.unpause = { 'TERRORIST': false, 'CT': false };
@@ -321,8 +342,7 @@ setInterval(function () {
 			servers[i].rcon('say \x10Match will start when both teams are \x04!ready\x10.');
 		} else if(servers[i].state.paused) {
 			servers[i].rcon('say \x10Match will resume when both teams are \x04!ready\x10.');
-		}	
-		console.log(servers[i].state);
+		}
 	}
 }, 30000);
 setInterval(function () {
@@ -335,3 +355,5 @@ setInterval(function () {
 }, 100);
 s.bind(myport);
 console.log('Listening on '+myport);
+
+//servers['1.2.3.4:27015'] = new Server('1.2.3.4:27015', 'rconpass');
