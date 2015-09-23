@@ -7,15 +7,6 @@ var static = [
 	// Static servers go here
 	// { host: 'foobar.fi' port: 27015, pass: 'pass' },
 	// { host: 'kekbur.fi' port: 27015, pass: 'pass' }
-	{
-		host: 'dex.im',
-		port: 27015,
-		pass: 'ankka'
-	}, {
-		host: 'titecs2.luminet.fi',
-		port: 27015,
-		pass: 'mermaidstory'
-	}
 ];
 
 ///////////////////////////////////////////////////////////////////////////////
