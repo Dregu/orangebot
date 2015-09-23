@@ -54,7 +54,7 @@ s.on('message', function (msg, info) {
 	// rcon rcon_password
 	var re = named(/rcon from "(:<user_ip>[\d\.]+?):\d+": command "rcon_password (:<rcon_pass>.*)"/);
 	var match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		if (servers[addr] !== undefined) {
 			delete servers[addr];
 		}
@@ -67,7 +67,7 @@ s.on('message', function (msg, info) {
 	// join team
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*)[>]" switched from team [<](:<user_team>CT|TERRORIST|Unassigned|Spectator)[>] to [<](:<new_team>CT|TERRORIST|Unassigned|Spectator)[>]/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		if (servers[addr].state.players[match.capture('steam_id')] === undefined) {
 			if (match.capture('steam_id') != 'BOT') {
 				servers[addr].state.players[match.capture('steam_id')] = new Player(match.capture('steam_id'), match.capture('new_team'), match.capture('user_name'), undefined);
@@ -82,7 +82,7 @@ s.on('message', function (msg, info) {
 	// clantag
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*?)[>][<](:<user_team>CT|TERRORIST|Unassigned|Spectator)[>]" triggered "clantag" \(value "(:<clan_tag>.*)"\)/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		if (servers[addr].state.players[match.capture('steam_id')] === undefined) {
 			if (match.capture('steam_id') != 'BOT') {
 				servers[addr].state.players[match.capture('steam_id')] = new Player(match.capture('steam_id'), match.capture('user_team'), match.capture('user_name'), match.capture('clan_tag'));
@@ -95,7 +95,7 @@ s.on('message', function (msg, info) {
 	// disconnect
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*)[>][<](:<user_team>CT|TERRORIST|Unassigned|Spectator)[>]" disconnected/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		if (servers[addr].state.players[match.capture('steam_id')] !== undefined) {
 			delete servers[addr].state.players[match.capture('steam_id')];
 		}
@@ -104,7 +104,7 @@ s.on('message', function (msg, info) {
 	// map loading
 	re = named(/Loading map "(:<map>.*?)"/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		for (var prop in servers[addr].state.playerrs) {
 			if (servers[addr].state.players.hasOwnProperty(prop)) {
 				delete servers[addr].state.players[prop];
@@ -115,14 +115,14 @@ s.on('message', function (msg, info) {
 	// map started
 	re = named(/Started map "(:<map>.*?)"/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		servers[addr].newmap(match.capture('map'));
 	}
 
 	// round end
 	re = named(/Team "(:<team>.*)" triggered "SFUI_Notice_(:<team_win>Terrorists_Win|CTs_Win|Target_Bombed|Target_Saved|Bomb_Defused)" \(CT "(:<ct_score>\d+)"\) \(T "(:<t_score>\d+)"\)/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		var score = {
 			'TERRORIST': parseInt(match.capture('t_score')),
 			'CT': parseInt(match.capture('ct_score'))
@@ -133,7 +133,7 @@ s.on('message', function (msg, info) {
 	// !command
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*)[>][<](:<user_team>CT|TERRORIST|Unassigned|Spectator)[>]" say "[!\.](:<text>.*)"/);
 	match = re.exec(text);
-	if (match != null) {
+	if (match !== null) {
 		var isadmin = servers[addr].admin(match.capture('steam_id'));
 		var param = match.capture('text').split(' ');
 		var cmd = param[0];
@@ -341,7 +341,7 @@ function Server(address, pass, adminip) {
 		}).exec('status', function (res) {
 			var re = named(/map\s+:\s+(:<map>.*?)\s/);
 			var match = re.exec(res.body);
-			if (match != null) {
+			if (match !== null) {
 				var map = match.capture('map');
 				if (tag.state.maps.indexOf(map) >= 0) {
 					tag.state.map = map;
@@ -354,7 +354,7 @@ function Server(address, pass, adminip) {
 			var regex = new RegExp('"(:<user_name>.*?)" (:<steam_id>STEAM_.*?) .*?' + adminip + ':', '');
 			re = named(regex);
 			match = re.exec(res.body);
-			if (match != null) {
+			if (match !== null) {
 				for (var i in match.captures.steam_id) {
 					if (tag.state.steamid.indexOf(match.captures.steam_id[i]) == -1) {
 						tag.state.steamid.push(match.captures.steam_id[i]);
@@ -365,7 +365,7 @@ function Server(address, pass, adminip) {
 		}).exec('mp_warmup_pausetimer', function (res) {
 			var re = named(/= "(:<paused>.*?)"/);
 			var match = re.exec(res.body);
-			if (match != null) {
+			if (match !== null) {
 				tag.state.live = match.capture('paused') == '1' ? false : true;
 			}
 			conn.close();
@@ -397,8 +397,8 @@ function Server(address, pass, adminip) {
 				this.state.unpause[team] = true;
 			}
 			if (this.state.unpause.TERRORIST != this.state.unpause.CT) {
-				this.rcon(READY.format(this.state.ready.TERRORIST ? T : CT, this.state.ready.TERRORIST ? CT : T))
-			} else if (this.state.unpause.TERRORIST == true && this.state.unpause.CT == true) {
+				this.rcon(READY.format(this.state.ready.TERRORIST ? T : CT, this.state.ready.TERRORIST ? CT : T));
+			} else if (this.state.unpause.TERRORIST === true && this.state.unpause.CT === true) {
 				this.rcon(MATCH_UNPAUSE);
 				this.state.paused = false;
 				this.state.freeze = false;
@@ -416,7 +416,7 @@ function Server(address, pass, adminip) {
 			}
 			if (this.state.ready.TERRORIST != this.state.ready.CT) {
 				this.rcon(READY.format(this.state.ready.TERRORIST ? T : CT, this.state.ready.TERRORIST ? CT : T));
-			} else if (this.state.ready.TERRORIST == true && this.state.ready.CT == true) {
+			} else if (this.state.ready.TERRORIST === true && this.state.ready.CT === true) {
 				this.state.live = true;
 				var demo = new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').replace(/\..+/, '') + '_' + this.state.map + '_' + clean(this.clantag('TERRORIST')) + '-' + clean(this.clantag('CT'));
 				if (this.state.knife) {
@@ -527,7 +527,7 @@ function Server(address, pass, adminip) {
 		this.state.knifewinner = false;
 		this.state.knife = false;
 		this.rcon(CONFIG);
-	}
+	};
 	this.rcon('sv_rcon_whitelist_address ' + myip + ';logaddress_add ' + myip + ':' + myport + ';log on');
 	this.status();
 	setTimeout(function () {
@@ -570,7 +570,7 @@ function addServer(host, port, pass) {
 }
 var servers = {};
 for (var i in static) {
-	addServer(static[i].host, static[i].port, static[i].pass)
+	addServer(static[i].host, static[i].port, static[i].pass);
 }
 console.log('OrangeBot listening on ' + myport);
 console.log('Run this in CS console to connect or configure orangebot.js:');
