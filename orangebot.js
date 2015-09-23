@@ -512,11 +512,14 @@ s.bind(myport);
 process.on('uncaughtException', function(err) {
 	console.log(err);
 });
+function addServer(host, port, pass) {
+	dns.lookup(host, {family: 4}, function(err, ip) {
+		servers[ip+':'+port] = new Server(ip+':'+port, pass);
+	});	
+}
 var servers = {};
-for(var i in static) {
-	dns.lookup(static[i].host, {family: 4}, function(err, ip) {
-		servers[ip+':'+static[i].port] = new Server(ip+':'+static[i].port, static[i].pass);
-	});
+for (var i in static) {
+	addServer(static[i].host, static[i].port, static[i].pass)
 }
 console.log('OrangeBot listening on '+myport);
 console.log('Run this in CS console to connect or configure orangebot.js:');
