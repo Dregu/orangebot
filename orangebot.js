@@ -5,8 +5,8 @@ var myport = '1337';
 var admins = ['STEAM_1:0:4534656']; // Global admins ho here
 var static = [
 	// Static servers go here
-	// { host: 'foobar.fi' port: 27015, pass: 'pass' },
-	// { host: 'kekbur.fi' port: 27015, pass: 'pass' }
+	// { host: 'foobar.fi', port: 27015, pass: 'pass' },
+	// { host: 'kekbur.fi', port: 27015, pass: 'pass' }
 ];
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,6 +38,16 @@ var rcon = require('simple-rcon');
 var dns = require('dns');
 var dgram = require('dgram');
 var s = dgram.createSocket('udp4');
+var SteamID = require('steamid');
+var admins64 = [];
+
+function id64(steamid) {
+	return (new SteamID(steamid)).getSteamID64();
+}
+
+for(var i in admins) {
+	admins64.push(id64(admins[i]));
+}
 
 String.prototype.format = function () {
 	var formatted = this;
@@ -263,7 +273,7 @@ function Server(address, pass, adminip) {
 			}
 			conn.close();
 		}).on('error', function (err) {
-			//console.log(err);
+			console.log(err);
 		});
 		conn.connect();
 	};
@@ -297,7 +307,7 @@ function Server(address, pass, adminip) {
 		return ret;
 	};
 	this.admin = function (steamid) {
-		if (this.state.steamid.indexOf(steamid) >= 0 || admins.indexOf(steamid) >= 0) {
+		if (this.state.steamid.indexOf(id64(steamid)) >= 0 || admins64.indexOf(id64(steamid)) >= 0) {
 			return true;
 		}
 		return false;
@@ -381,8 +391,8 @@ function Server(address, pass, adminip) {
 			match = re.exec(res.body);
 			if (match !== null) {
 				for (var i in match.captures.steam_id) {
-					if (tag.state.steamid.indexOf(match.captures.steam_id[i]) == -1) {
-						tag.state.steamid.push(match.captures.steam_id[i]);
+					if (tag.state.steamid.indexOf(id64(match.captures.steam_id[i])) == -1) {
+						tag.state.steamid.push(id64(match.captures.steam_id[i]));
 						tag.state.admins.push(match.captures.user_name[i]);
 					}
 				}
