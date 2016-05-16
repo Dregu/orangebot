@@ -8,5 +8,6 @@
 , "dependencies":
 	{ "named-regexp": "latest"
 	, "simple-rcon": "latest"
-	, "ip": "latest" }
+	, "ip": "latest"
+	, "steamid": "latest" }
 }
