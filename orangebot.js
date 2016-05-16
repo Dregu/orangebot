@@ -600,9 +600,7 @@ process.on('uncaughtException', function (err) {
 });
 
 function addServer(host, port, pass) {
-	dns.lookup(host, {
-		family: 4
-	}, function (err, ip) {
+	dns.lookup(host, 4, function (err, ip) {
 		servers[ip + ':' + port] = new Server(ip + ':' + port, pass);
 	});
 }
