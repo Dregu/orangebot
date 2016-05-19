@@ -1,27 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-
-var myip = require('ip').address();
-var myport = '1337';
-var admins = [];
-var static = [{
-		host: '10.0.0.24',
-		port: 27015,
-		pass: 'ankka'
-	}, {
-		host: '10.0.0.42',
-		port: 27015,
-		pass: 'ankka'
-	}, {
-		host: '10.0.0.69',
-		port: 27015,
-		pass: 'ankka'
-	}
-	//{ host: '10.0.0.24', port: 27015, pass: 'ankka' }
-];
-var rcon_pass = 'ankka';
-
-///////////////////////////////////////////////////////////////////////////////
-
 var WARMUP = 'say \x10Match will start when both teams are \x06!ready\x10.',
 	WARMUP_KNIFE = 'say \x10Knife round will start when both teams are \x06!ready\x10.',
 	KNIFE_DISABLED = 'say \x10Cancelled knife round.',
@@ -31,6 +7,10 @@ var WARMUP = 'say \x10Match will start when both teams are \x06!ready\x10.',
 	KNIFE_STAY = 'mp_unpause_match;mp_restartgame 1;say \x10Match started! GL HF!',
 	KNIFE_SWAP = 'mp_unpause_match;mp_swapteams;say \x10Match started! GL HF!',
 	PAUSE_ENABLED = 'mp_pause_match;say \x10Pausing match on freeze time!',
+	PAUSE_MISSING = 'say \x10All pauses for your team on this map have been used up already.',
+	PAUSE_REMAINING = 'say \x10Pauses remaining for your team on this map: {0} of {1}',
+	PAUSE_TIMEOUT = 'say \x10Maximum pause duration reached, continuing Match in 20 seconds...',
+	PAUSE_TIME = 'say \x10 Pause will automatically end in {0} seconds from now',
 	MATCH_STARTING = 'mp_maxmoney 16000;mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;log on;tv_record {0};say \x10Both teams are \x06!ready\x10, starting match in:;say \x085...',
 	MATCH_STARTED = 'say \x10Match started! GL HF!',
 	MATCH_PAUSED = 'mp_respawn_on_death_t 1;mp_respawn_on_death_ct 1;say \x10Match will resume when both teams are \x06!ready\x10.',
@@ -52,13 +32,20 @@ var dgram = require('dgram');
 var s = dgram.createSocket('udp4');
 var SteamID = require('steamid');
 var admins64 = [];
+var myip = require('ip').address();
+
 var nconf = require('nconf');
 nconf.file({
 	file: 'config.json'
 });
 
+var pauseSettings = {'uses':nconf.get('pause_uses'), 'time':nconf.get('pause_time')};
 var groupId = nconf.get('group');
 var token = nconf.get('token');
+var myport = nconf.get('port');
+var rcon_pass = nconf.get('rcon');
+var admins = nconf.get('admins');
+
 if(token.length)
 {
 	var TelegramBot = require('node-telegram-bot-api');
@@ -105,7 +92,7 @@ s.on('message', function (msg, info) {
 
 	console.log(info);
 
-	if (servers[addr] === undefined && addr.match(/10.0.0.24/)) {
+	if (servers[addr] === undefined && addr.match(/(\d+\.){3}\d+/)) {
 		servers[addr] = new Server(String(addr), String(rcon_pass));
 	}
 
@@ -234,7 +221,7 @@ s.on('message', function (msg, info) {
 			servers[addr].ready(match.capture('user_team'));
 			break;
 		case 'pause':
-			servers[addr].pause();
+			servers[addr].pause(match.capture('user_team'));
 			break;
 		case 'stay':
 			servers[addr].stay(match.capture('user_team'));
@@ -307,7 +294,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 		steamid: [],
 		admins: [],
 		queue: [],
-		players: {}
+		players: {},
+		pauses: {}
 	};
 	if (adminid !== undefined && tag.state.steamid.indexOf(adminid) == -1) {
 		tag.state.steamid.push(id64(adminid));
@@ -403,22 +391,19 @@ function Server(address, pass, adminip, adminid, adminname) {
 			}
 		}
 		var maps = [];
-		var scores = [];
-		var team_scores[2];
+		var scores = {};
 		for (var j = 0; j < this.state.maps.length; j++) {
 			maps.push(this.state.maps[j] + ' ' + stat[team1][j] + '-' + stat[team2][j]);
-			scores.push(stat[team1][j] + '-' + stat[team2][j]);
-			
-			if(stat[team1][j] > stat[team2][j]) team_scores[0]++;
-			else (stat[team1][j] < stat[team2][j]) team_scores[1]++;
+
+			if(stat[team1][j] > stat[team2][j]) scores.team1 += 1;
+			else (stat[team1][j] < stat[team2][j]) scores.team2 += 1;
 		}
-		var out = team1 + ' [' + scores.join(', ') + '] ' + team2;
 		var chat = '\x10' + team1 + ' [\x06' + maps.join(', ') + '\x10] ' + team2;
 		if (tochat) {
 			this.rcon('say ' + chat);
 		} else {
 			var index = this.state.maps.indexOf(this.state.map);
-			this.rcon(GOTV_OVERLAY.format(index+1, this.state.maps.length, team_scores[0], team_scores[0]));
+			this.rcon(GOTV_OVERLAY.format(index+1, this.state.maps.length, scores.team1, scores.team2));
 		}
 		return out.replace(/\x10/g, '').replace(/\x06/g, '').replace(/_/g, '\\_');
 	};
@@ -427,10 +412,13 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.state.paused = false;
 		this.rcon(ROUND_STARTED);
 	};
-	this.pause = function () {
+	this.pause = function (team) {
 		if (!this.state.live) return;
-		var message = this.clantag('TERRORIST') + ' - ' + this.clantag('CT') + "\n*Match paused*";
+		if (!this.state.pauses[team]) return this.rcon(PAUSE_MISSING);
+		this.state.pauses[team]-=1;
+		this.rcon(PAUSE_REMAINING.format(this.state.pauses[team], pauseSettings.uses));
 		if(token.length) {
+			var message = this.clantag('TERRORIST') + ' - ' + this.clantag('CT') + "\n*Match paused*";
 			bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
 				parse_mode: 'Markdown'
 			});
@@ -442,7 +430,24 @@ function Server(address, pass, adminip, adminid, adminname) {
 			'CT': false
 		};
 		if (this.state.freeze) {
-			this.rcon(MATCH_PAUSED);
+			this.matchPause();
+		}
+	};
+	this.matchPause = function() {
+		this.rcon(MATCH_PAUSED);
+		
+		if (pauseSettings.time) {
+			this.state.pauses.timer = setTimeout(function() {
+				tag.rcon(PAUSE_TIMEOUT);
+				setTimeout(function() {
+					tag.state.unpause = {
+						'TERRORIST': true,
+						'CT': true
+					};
+					tag.ready('CT');
+				}, 20*1000);
+			}, (pauseSettings.time-20)*1000);
+			this.rcon(PAUSE_TIME.format(pauseSettings.time));
 		}
 	};
 	this.status = function () {
@@ -515,6 +520,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			if (this.state.unpause.TERRORIST != this.state.unpause.CT) {
 				this.rcon(READY.format(this.state.ready.TERRORIST ? T : CT, this.state.ready.TERRORIST ? CT : T));
 			} else if (this.state.unpause.TERRORIST === true && this.state.unpause.CT === true) {
+				if("timer" in this.state.pauses) clearTimeout(this.state.pauses.timer);
 				this.rcon(MATCH_UNPAUSE);
 				this.state.paused = false;
 				this.state.unpause = {
@@ -585,6 +591,10 @@ function Server(address, pass, adminip, adminid, adminname) {
 			this.state.maps = [map];
 			this.state.map = map;
 		}
+		
+		this.state.pauses[this.clantag('CT')] = pauseSettings.uses;
+		this.state.pauses[this.clantag('TERRORIST')] = pauseSettings.uses;
+		
 		setTimeout(function () {
 			if (index >= 0 && tag.state.maps[index + 1] !== undefined) {
 				tag.rcon('nextlevel ' + tag.state.maps[index + 1]);
@@ -620,7 +630,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			this.state.knife = false;
 			this.rcon(KNIFE_WON.format(this.state.knifewinner == 'TERRORIST' ? T : CT));
 		} else if (this.state.paused) {
-			this.rcon(MATCH_PAUSED);
+			this.matchPause();
 		}
 		this.state.freeze = true;
 	};
@@ -686,7 +696,7 @@ setInterval(function () {
 				servers[i].rcon(WARMUP);
 			}
 		} else if (servers[i].state.paused && servers[i].state.freeze) {
-			servers[i].rcon(MATCH_PAUSED);
+			servers[i].matchPause();
 		}
 	}
 }, 30000);
@@ -716,4 +726,4 @@ for (var i in static) {
 }
 console.log('OrangeBot listening on ' + myport);
 console.log('Run this in CS console to connect or configure orangebot.js:');
-console.log('connect YOUR_SERVER;password YOUR_PASS;rcon_password YOUR_RCON;rcon sv_rcon_whitelist_address ' + myip + ';rcon logaddress_add ' + myip + ':' + myport + ';rcon log on;rcon rcon_password YOUR_RCON');
+console.log('connect YOUR_SERVER;password YOUR_PASS;rcon_password ' + rcon_pass + ';rcon sv_rcon_whitelist_address ' + myip + ';rcon logaddress_add ' + myip + ':' + myport + ';rcon log on;rcon rcon_password '+ rcon_pass);
