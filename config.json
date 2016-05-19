@@ -1,0 +1,9 @@
+{
+	"port": 1337,
+	"admins": [],
+	"static": [],
+	"subnet": "10.0.0.0/24",
+	"rcon": "ankka",
+	"token": "204512631:AAF_faK4nEqCD_O9b5NP2XxpY456b59XwPA",
+	"group": "-148659596"
+}
