@@ -56,26 +56,30 @@ var nconf = require('nconf');
 nconf.file({
 	file: 'config.json'
 });
-var TelegramBot = require('node-telegram-bot-api');
-var token = nconf.get('token');
+
 var groupId = nconf.get('group');
-var bot = new TelegramBot(token, {
-	polling: true
-});
-bot.on('message', function (msg) {
-	if (!msg.text) return;
-	if (msg.chat.id != groupId) return;
-	var nick = msg.from.username || msg.from.first_name;
-	var message = msg.text;
-	if (msg.reply_to_message) {
-		var re = named(/@(:<addr>\d+\.\d+\.\d+\.\d+:\d+)/m);
-		var match = re.exec(msg.reply_to_message.text);
-		if (match !== null) {
-			var addr = match.capture('addr');
-			servers[addr].say(message);
+var token = nconf.get('token');
+if(token.length)
+{
+	var TelegramBot = require('node-telegram-bot-api');
+	var bot = new TelegramBot(token, {
+		polling: true
+	});
+	bot.on('message', function (msg) {
+		if (!msg.text) return;
+		if (msg.chat.id != groupId) return;
+		var nick = msg.from.username || msg.from.first_name;
+		var message = msg.text;
+		if (msg.reply_to_message) {
+			var re = named(/@(:<addr>\d+\.\d+\.\d+\.\d+:\d+)/m);
+			var match = re.exec(msg.reply_to_message.text);
+			if (match !== null) {
+				var addr = match.capture('addr');
+				servers[addr].say(message);
+			}
 		}
-	}
-});
+	});
+}
 
 function id64(steamid) {
 	return (new SteamID(String(steamid))).getSteamID64();
@@ -196,9 +200,11 @@ s.on('message', function (msg, info) {
 		switch (String(cmd)) {
 		case 'admin':
 			var message = param.join(' ').replace('!admin ', '');
-			bot.sendMessage(groupId, '*' + match.capture('user_name') + '@' + addr + "*\n" + message + "\n*Admin called*", {
-				parse_mode: 'Markdown'
-			});
+			if(token.length) {
+				bot.sendMessage(groupId, '*' + match.capture('user_name') + '@' + addr + "*\n" + message + "\n*Admin called*", {
+					parse_mode: 'Markdown'
+				});
+			}
 			break;
 		case 'status':
 		case 'stats':
@@ -424,9 +430,11 @@ function Server(address, pass, adminip, adminid, adminname) {
 	this.pause = function () {
 		if (!this.state.live) return;
 		var message = this.clantag('TERRORIST') + ' - ' + this.clantag('CT') + "\n*Match paused*";
-		bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
-			parse_mode: 'Markdown'
-		});
+		if(token.length) {
+			bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
+				parse_mode: 'Markdown'
+			});
+		}
 		this.rcon(PAUSE_ENABLED);
 		this.state.paused = true;
 		this.state.unpause = {
@@ -537,9 +545,11 @@ function Server(address, pass, adminip, adminid, adminname) {
 						tag.rcon(MATCH_STARTED);
 					}, 9000);
 					var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match started*";
-					bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
-						parse_mode: 'Markdown'
-					});
+					if(token.length) {
+						bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
+							parse_mode: 'Markdown'
+						});
+					}
 				}
 				setTimeout(function () {
 					tag.rcon('say \x054...');
@@ -561,9 +571,11 @@ function Server(address, pass, adminip, adminid, adminname) {
 	};
 	this.newmap = function (map, delay) {
 		var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(map, '*' + map + '*').replace(/de_/g, '') + "\n*Map loaded*";
-		bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
-			parse_mode: 'Markdown'
-		});
+		if(token.length) {
+			bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
+				parse_mode: 'Markdown'
+			});
+		}
 		if (delay === undefined) delay = 10000;
 		var index = -1;
 		if (this.state.maps.indexOf(map) >= 0) {
