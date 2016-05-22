@@ -8,7 +8,8 @@
     "url": "https://github.com/dregu/orangebot"
   },
   "dependencies": {
-    "ip": "latest",
+	"ip": "latest",
+    "public-ip": "latest",
     "named-regexp": "latest",
     "nconf": "latest",
     "simple-rcon": "latest",

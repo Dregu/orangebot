@@ -1,17 +1,17 @@
 var WARMUP = 'say \x10Match will start when both teams are \x06!ready\x10.',
 	WARMUP_KNIFE = 'say \x10Knife round will start when both teams are \x06!ready\x10.',
 	KNIFE_DISABLED = 'say \x10Cancelled knife round.',
-	KNIFE_STARTING = 'mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;mp_maxmoney 0;mp_t_default_secondary "";mp_ct_default_secondary "";mp_free_armor 1;mp_give_player_c4 0;log on;tv_record {0};say \x10Both teams are \x06!ready\x10, starting knife round in:;say \x085...',
+	KNIFE_STARTING = 'mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;mp_maxmoney 0;mp_t_default_secondary "";mp_ct_default_secondary "";mp_free_armor 1;mp_give_player_c4 0;log on;tv_stoprecord;tv_record "{0}";say \x10Both teams are \x06!ready\x10, starting knife round in:;say \x085...',
 	KNIFE_STARTED = 'say \x10Knife round started! GL HF!',
 	KNIFE_WON = 'mp_pause_match;mp_maxmoney 16000;mp_t_default_secondary "weapon_glock";mp_ct_default_secondary "weapon_hkp2000";mp_free_armor 0;mp_give_player_c4 1;say \x06{0} \x10won the knife round!;say \x10Do you want to \x06!stay\x10 or \x06!swap\x10?',
 	KNIFE_STAY = 'mp_unpause_match;mp_restartgame 1;say \x10Match started! GL HF!',
 	KNIFE_SWAP = 'mp_unpause_match;mp_swapteams;say \x10Match started! GL HF!',
 	PAUSE_ENABLED = 'mp_pause_match;say \x10Pausing match on freeze time!',
-	PAUSE_MISSING = 'say \x10All pauses for your team on this map have been used up already.',
-	PAUSE_REMAINING = 'say \x10Pauses remaining for your team on this map: {0} of {1}',
-	PAUSE_TIMEOUT = 'say \x10Maximum pause duration reached, continuing Match in 20 seconds...',
-	PAUSE_TIME = 'say \x10 Pause will automatically end in {0} seconds from now',
-	MATCH_STARTING = 'mp_maxmoney 16000;mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;log on;tv_record {0};say \x10Both teams are \x06!ready\x10, starting match in:;say \x085...',
+	PAUSE_MISSING = 'say \x10All your pauses have been used up already',
+	PAUSE_REMAINING = 'say \x10Pauses remaining: \x06{0}\x10 of \x06{1}',
+	PAUSE_TIMEOUT = 'say \x10Continuing in \x0620 seconds',
+	PAUSE_TIME = 'say \x10Pause will automatically end in \x06{0} seconds',
+	MATCH_STARTING = 'mp_maxmoney 16000;mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;log on;tv_stoprecord;tv_record "{0}";say \x10Both teams are \x06!ready\x10, starting match in:;say \x085...',
 	MATCH_STARTED = 'say \x10Match started! GL HF!',
 	MATCH_PAUSED = 'mp_respawn_on_death_t 1;mp_respawn_on_death_ct 1;say \x10Match will resume when both teams are \x06!ready\x10.',
 	MATCH_UNPAUSE = 'mp_respawn_on_death_t 0;mp_respawn_on_death_ct 0;mp_unpause_match;say \x10Both teams are \x06!ready\x10, resuming match!',
@@ -32,7 +32,14 @@ var dgram = require('dgram');
 var s = dgram.createSocket('udp4');
 var SteamID = require('steamid');
 var admins64 = [];
-var myip = require('ip').address();
+var servers = {};
+var localIp = require('ip').address();
+var externalIp;
+require('public-ip').v4().then(ip => {
+	externalIp = ip;
+	initConnection();
+});
+var myip;
 
 var nconf = require('nconf');
 nconf.file({
@@ -40,11 +47,12 @@ nconf.file({
 });
 
 var pauseSettings = {'uses':nconf.get('pause_uses'), 'time':nconf.get('pause_time')};
-var groupId = nconf.get('group');
-var token = nconf.get('token');
+var token = nconf.get('telegram_token');
 var myport = nconf.get('port');
-var rcon_pass = nconf.get('rcon');
+var rcon_pass = nconf.get('default_rcon');
 var admins = nconf.get('admins');
+var server_config = nconf.get('server');
+var serverType = nconf.get('serverType');
 
 if(token.length)
 {
@@ -52,6 +60,7 @@ if(token.length)
 	var bot = new TelegramBot(token, {
 		polling: true
 	});
+	var groupId = nconf.get('telegram_group');
 	bot.on('message', function (msg) {
 		if (!msg.text) return;
 		if (msg.chat.id != groupId) return;
@@ -90,11 +99,10 @@ s.on('message', function (msg, info) {
 	var text = msg.toString(),
 		param, cmd, re, match;
 
-	console.log(info);
-
 	if (servers[addr] === undefined && addr.match(/(\d+\.){3}\d+/)) {
 		servers[addr] = new Server(String(addr), String(rcon_pass));
 	}
+	//console.log(text);
 
 	// join team
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*)[>]" switched from team [<](:<user_team>CT|TERRORIST|Unassigned|Spectator)[>] to [<](:<new_team>CT|TERRORIST|Unassigned|Spectator)[>]/);
@@ -186,8 +194,8 @@ s.on('message', function (msg, info) {
 		param.shift();
 		switch (String(cmd)) {
 		case 'admin':
-			var message = param.join(' ').replace('!admin ', '');
 			if(token.length) {
+				var message = param.join(' ').replace('!admin ', '');
 				bot.sendMessage(groupId, '*' + match.capture('user_name') + '@' + addr + "*\n" + message + "\n*Admin called*", {
 					parse_mode: 'Markdown'
 				});
@@ -391,12 +399,15 @@ function Server(address, pass, adminip, adminid, adminname) {
 			}
 		}
 		var maps = [];
-		var scores = {};
+		var scores = {team1:0, team2:0};
 		for (var j = 0; j < this.state.maps.length; j++) {
 			maps.push(this.state.maps[j] + ' ' + stat[team1][j] + '-' + stat[team2][j]);
 
-			if(stat[team1][j] > stat[team2][j]) scores.team1 += 1;
-			else (stat[team1][j] < stat[team2][j]) scores.team2 += 1;
+			if(this.state.maps[j] != this.state.map)
+			{
+				if (stat[team1][j] > stat[team2][j]) scores.team1 += 1;
+				else if(stat[team1][j] < stat[team2][j]) scores.team2 += 1;
+			}
 		}
 		var chat = '\x10' + team1 + ' [\x06' + maps.join(', ') + '\x10] ' + team2;
 		if (tochat) {
@@ -405,7 +416,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			var index = this.state.maps.indexOf(this.state.map);
 			this.rcon(GOTV_OVERLAY.format(index+1, this.state.maps.length, scores.team1, scores.team2));
 		}
-		return out.replace(/\x10/g, '').replace(/\x06/g, '').replace(/_/g, '\\_');
+		return chat;
 	};
 	this.round = function () {
 		this.state.freeze = false;
@@ -413,10 +424,16 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.rcon(ROUND_STARTED);
 	};
 	this.pause = function (team) {
+		team = this.clantag(team);
 		if (!this.state.live) return;
-		if (!this.state.pauses[team]) return this.rcon(PAUSE_MISSING);
-		this.state.pauses[team]-=1;
-		this.rcon(PAUSE_REMAINING.format(this.state.pauses[team], pauseSettings.uses));
+		
+		if(pauseSettings.uses) 
+		{
+			if (!this.state.pauses[team]) return this.rcon(PAUSE_MISSING);
+			this.state.pauses[team]-=1;
+			this.rcon(PAUSE_REMAINING.format(this.state.pauses[team], pauseSettings.uses));
+		}
+		
 		if(token.length) {
 			var message = this.clantag('TERRORIST') + ' - ' + this.clantag('CT') + "\n*Match paused*";
 			bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
@@ -437,6 +454,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.rcon(MATCH_PAUSED);
 		
 		if (pauseSettings.time) {
+			clearTimeout(this.state.pauses.timer);
 			this.state.pauses.timer = setTimeout(function() {
 				tag.rcon(PAUSE_TIMEOUT);
 				setTimeout(function() {
@@ -550,8 +568,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 					setTimeout(function () {
 						tag.rcon(MATCH_STARTED);
 					}, 9000);
-					var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match started*";
 					if(token.length) {
+						var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match started*";
 						bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
 							parse_mode: 'Markdown'
 						});
@@ -576,8 +594,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 		}
 	};
 	this.newmap = function (map, delay) {
-		var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(map, '*' + map + '*').replace(/de_/g, '') + "\n*Map loaded*";
 		if(token.length) {
+			var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(map, '*' + map + '*').replace(/de_/g, '') + "\n*Map loaded*";
 			bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
 				parse_mode: 'Markdown'
 			});
@@ -678,6 +696,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 	setTimeout(function () {
 		tag.rcon('say \x10Hi! I\'m OrangeBot.' + (tag.state.admins.length > 0 ? ' \x0e' + tag.state.admins.join(', ') + '\x10 is now my admin.' : '') + ';say \x10Start a match with \x06!start map \x08map map');
 	}, 1000);
+	s.send("plz go", 0, 6, this.state.port, this.state.ip); // SRCDS won't send data if it doesn't get contacted initially
 	console.log('Connected to ' + this.state.ip + ':' + this.state.port + ', pass ' + this.state.pass);
 }
 setInterval(function () {
@@ -696,7 +715,7 @@ setInterval(function () {
 				servers[i].rcon(WARMUP);
 			}
 		} else if (servers[i].state.paused && servers[i].state.freeze) {
-			servers[i].matchPause();
+			//servers[i].matchPause();
 		}
 	}
 }, 30000);
@@ -718,12 +737,18 @@ function addServer(host, port, pass) {
 		servers[ip + ':' + port] = new Server(ip + ':' + port, pass);
 	});
 }
-var servers = {};
-for (var i in static) {
-	if (static.hasOwnProperty(i)) {
-		addServer(static[i].host, static[i].port, static[i].pass);
+
+function initConnection()
+{
+	if(serverType == "local") myip = localIp;
+	else myip = externalIp;
+	
+	for (var i in server_config) {
+		if (server_config.hasOwnProperty(i)) {
+			addServer(server_config[i].host, server_config[i].port, server_config[i].pass);
+		}
 	}
+	console.log('OrangeBot listening on ' + myport);
+	console.log('Run this in CS console to connect or configure orangebot.js:');
+	console.log('connect YOUR_SERVER;password YOUR_PASS;rcon_password YOUR_RCON;rcon sv_rcon_whitelist_address ' + externalIp + ';rcon logaddress_add ' + externalIp + ':' + myport + ';rcon log on; rcon rcon_password '+rcon_pass);
 }
-console.log('OrangeBot listening on ' + myport);
-console.log('Run this in CS console to connect or configure orangebot.js:');
-console.log('connect YOUR_SERVER;password YOUR_PASS;rcon_password ' + rcon_pass + ';rcon sv_rcon_whitelist_address ' + myip + ';rcon logaddress_add ' + myip + ':' + myport + ';rcon log on;rcon rcon_password '+ rcon_pass);

@@ -6,22 +6,30 @@ OrangeBot is a CS:GO matchmaking bot written in node.js. It uses a logaddress an
 npm install
 node orangebot.js
 ```
-You can define static servers and admins steamid in orangebot.js or connect your server dynamically with rcon
-```
-connect your.server;rcon_password your_rcon;rcon logaddress_add orangebot.ip:1337;rcon log on;rcon rcon_password your_rcon
-```
-The last command is to echo your password to the log so the bot can connect. The bot should now greet and make you an admin. Now you can f.e. start a BO3 match with `!start de_dust2 de_cache de_mirage` in game chat. Both teams have to `!ready` once to start the match. You can specify a `!knife` round before this if you wanna. Players can `!pause` the game on next freezetime if they want to.
+You can start a BO3 match with `!start de_dust2 de_cache de_mirage` in game chat. Both teams have to `!ready` once to start the match. You can specify a `!knife` round before this if you want to. Players can `!pause` the game on next freezetime if they want to.
+
+| config.json settings   | Function                                                                                                                              |
+|------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| port                   | Set the local port of the orangebot to listen on.                                                                                     |
+| server[]               | Configure all servers that the bot will automatically connect to. Every server needs `host`, `port` and `pass`.                       |
+| admins[]               | Contains the Steam-IDs of every player that is supposed to be an administrator.                                                       |
+| default_rcon           | If you want to add servers that are not configured in `server[]` this rcon password will be used.                                     |
+| telegram_token         | You can configure a Telegram - Bot to keep you updated about the game. This is the token for it.                                      |
+| telegram_group         | If you set `telegram_token` you need to specify a groupID where the Bot will write the status updates into.                           |
+| pause_time             | Limit the maximum duration for a pause in seconds. Set to 0 to not set any time limit.                                                |
+| pause_uses             | Limit how often teams can call a pause per map. Set to 0 to not set any limit.                                                        |
+| serverType             | If your node.js server is running on the same machine as the CS:GO server use `local`, if not use `external`.                         |
 
 | Admin commands         | Function                                                                                                                              |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| !start [map map map …] | Starts a BO1-match in current map or BO[n] match in listed maps. (Aliases: !startmatch, !map, !maps, !match)                      |
 | !reset                 | Resets current map to warmup state. Not the whole match. (Aliases: !restart, !warmup)                                                 |
-| !knife                 | Sets/cancels current map to start with a knife round.                                                                                 |
-| !leave                 | Tells the bot to leave the server alone. (Aliases: !disconnect, !quit)                                                                |
+| !leave                 | Tells the bot to leave the server. (Aliases: !disconnect, !quit)                                                                      |
 | !force                 | Starts or resumes match bypassing !ready.                                                                                             |
 
 | Player commands        | Function                                                                                                                              |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| !start [map map map …] | Starts a BO1-match in current map or BO[n] match in listed maps. (Aliases: !startmatch, !map, !maps, !match)                          |
+| !knife                 | Sets/cancels current map to start with a knife round.                                                                                 |
 | !ready                 | Tells the bot your team is ready to start or resume the match. Match is LIVE after both teams are ready. (Aliases: !resume, !unpause) |
 | !pause                 | Pauses the match on next freeze time. Match will resume when both teams are !ready.                                                   |
 | !swap                  | Swap teams after knife round. Match is LIVE after one restart. (Aliases: !switch)                                                     |
