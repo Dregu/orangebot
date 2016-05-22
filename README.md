@@ -25,6 +25,7 @@ You can start a BO3 match with `!start de_dust2 de_cache de_mirage` in game chat
 | !reset                 | Resets current map to warmup state. Not the whole match. (Aliases: !restart, !warmup)                                                 |
 | !leave                 | Tells the bot to leave the server. (Aliases: !disconnect, !quit)                                                                      |
 | !force                 | Starts or resumes match bypassing !ready.                                                                                             |
+| !restore [round]       | Restarts the match at a given round by using automatic backup files.                                                                  |
 
 | Player commands        | Function                                                                                                                              |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
