@@ -1,9 +1,16 @@
 {
 	"port": 1337,
+	"server": [{
+		"host": "10.0.0.24",
+		"port": 27015,
+		"pass": "ankka"
+	}],
 	"admins": [],
-	"static": [],
-	"subnet": "10.0.0.0/24",
-	"rcon": "ankka",
-	"token": "204512631:AAF_faK4nEqCD_O9b5NP2XxpY456b59XwPA",
-	"group": "-148659596"
+	"default_rcon": "ankka",
+	"telegram_token": "",
+	"telegram_group": "-148659596",
+	"pause_time": 0,
+	"pause_uses": 1,
+	"ready_time": 0,
+	"serverType": "local"
 }
