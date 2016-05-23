@@ -6,7 +6,7 @@ OrangeBot is a CS:GO matchmaking bot written in node.js. It uses a logaddress an
 npm install
 node orangebot.js
 ```
-You can start a BO3 match with `!start de_dust2 de_cache de_mirage` in game chat. Both teams have to `!ready` once to start the match. You can specify a `!knife` round before this if you want to. Players can `!pause` the game on next freezetime if they want to.
+You can start a BO3 match with `!start de_dust2 de_cache de_mirage` in game chat. Both teams have to `!ready` once to start the match. A knife round will start before each map. Players can `!pause` the game on next freezetime if they want to.
 
 | config.json settings   | Function                                                                                                                              |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
@@ -18,6 +18,7 @@ You can start a BO3 match with `!start de_dust2 de_cache de_mirage` in game chat
 | telegram_group         | If you set `telegram_token` you need to specify a groupID where the Bot will write the status updates into.                           |
 | pause_time             | Limit the maximum duration for a pause in seconds. Set to 0 to not set any time limit.                                                |
 | pause_uses             | Limit how often teams can call a pause per map. Set to 0 to not set any limit.                                                        |
+| ready_time             | Limit the time both teams have to be ready for match start. Set to 0 to not set any limit.                                            |
 | serverType             | If your node.js server is running on the same machine as the CS:GO server use `local`, if not use `external`.                         |
 
 | Admin commands         | Function                                                                                                                              |
