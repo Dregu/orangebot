@@ -11,8 +11,9 @@
     "ip": "latest",
     "named-regexp": "latest",
     "nconf": "latest",
+    "node-telegram-bot-api": "latest",
+    "request": "latest",
     "simple-rcon": "latest",
-    "steamid": "latest",
-    "node-telegram-bot-api": "latest"
+    "steamid": "latest"
   }
 }
