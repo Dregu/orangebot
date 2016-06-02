@@ -20,6 +20,7 @@ var static = [{
 ];
 var rcon_pass = 'ankka';
 var whitelist = ['STEAM_1:0:4534656'];
+//var whitelist = [];
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -58,8 +59,7 @@ nconf.file({
 	file: 'config.json'
 });
 var TelegramBot = require('node-telegram-bot-api');
-var token = nconf.get('token');
-var groupId = nconf.get('group');
+var token = nconf.get('token');var groupId = nconf.get('group');
 var bot = new TelegramBot(token, {
 	polling: true
 });
@@ -109,12 +109,9 @@ s.on('message', function (msg, info) {
 	var text = msg.toString(),
 		param, cmd, re, match;
 
-	console.log(info);
-
 	if (servers[addr] === undefined && addr.match(/10.0.0.24/)) {
 		servers[addr] = new Server(String(addr), String(rcon_pass));
 	}
-
 
 	// connected
 	re = named(/"(:<user_name>.+)[<](:<user_id>\d+)[>][<](:<steam_id>.*)[>]<>" connected/);
@@ -124,15 +121,17 @@ s.on('message', function (msg, info) {
 			var conName = match.capture('user_name');
 			var conId = match.capture('steam_id');
 			request('http://akl.tite.fi/akl-service/api/users/steamid/'+match.capture('steam_id'), function (error, response, body) {
-				if (!error && response.statusCode == 200) {
-					servers[addr].say(conName + ' is a registered sex offender.');
+				if (error) {
+					servers[addr].say('Letting '+conName+' connect because AKL API is not responding.');
+					return;
+				}
+				if (response.statusCode == 200) {
+					//servers[addr].say(conName + ' (connecting) is a registered sex offender.');
+				} else if (whitelisted(conId)) {
+					//servers[addr].say(conName+' (connecting) is whitelisted.');
 				} else {
-					servers[addr].say(conName + ' is not a member of any team.');
-					if (!whitelisted(conId)) {
-						servers[addr].rcon('kickid '+conId+' Not a member of a team');
-					} else {
-						servers[addr].say('But '+conName+' is whitelisted.');
-					}
+					servers[addr].say(conName + ' tried to connect, but is not registered.');
+					servers[addr].rcon('kickid '+conId+' This account is not registered on akl.tite.fi');
 				}
 			});
 		}		
