@@ -2,25 +2,47 @@
 
 var myip = require('ip').address();
 var myport = '1337';
+//var admins = ['STEAM_1:0:4534656'];
 var admins = [];
-var static = [{
-		host: '10.0.0.24',
+var static = [
+	{
+		host: '172.17.0.2',
 		port: 27015,
-		pass: 'ankka'
-	}, {
-		host: '10.0.0.42',
+		pass: 'mermaidstory'
+	},
+	{
+		host: '172.17.0.3',
 		port: 27015,
-		pass: 'ankka'
-	}, {
-		host: '10.0.0.69',
+		pass: 'mermaidstory'
+	},
+	{
+		host: '172.17.0.4',
 		port: 27015,
-		pass: 'ankka'
+		pass: 'mermaidstory'
+	},
+	{
+		host: '172.17.0.5',
+		port: 27015,
+		pass: 'mermaidstory'
+	},
+	{
+		host: '172.17.0.6',
+		port: 27015,
+		pass: 'mermaidstory'
 	}
-	//{ host: '10.0.0.24', port: 27015, pass: 'ankka' }
 ];
-var rcon_pass = 'ankka';
-var whitelist = ['STEAM_1:0:4534656'];
-//var whitelist = [];
+var rcon_pass = 'mermaidstory';
+//var whitelist = ['STEAM_1:0:4534656'];
+var whitelist = [];
+var pool = [
+	'de_cache',
+	'de_cbble',
+	'de_dust2',
+	'de_inferno',
+	'de_mirage',
+	'de_overpass',
+	'de_train'
+];
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -54,12 +76,9 @@ var request = require('request');
 var s = dgram.createSocket('udp4');
 var SteamID = require('steamid');
 var admins64 = [];
-var nconf = require('nconf');
-nconf.file({
-	file: 'config.json'
-});
 var TelegramBot = require('node-telegram-bot-api');
-var token = nconf.get('token');var groupId = nconf.get('group');
+var token = '204512631:AAFG8WMbO8uA0u3IXC4Ma-Ofppu6am5ZGJQ';
+var groupId = '-126008365';
 var bot = new TelegramBot(token, {
 	polling: true
 });
@@ -109,7 +128,7 @@ s.on('message', function (msg, info) {
 	var text = msg.toString(),
 		param, cmd, re, match;
 
-	if (servers[addr] === undefined && addr.match(/10.0.0.24/)) {
+	if (servers[addr] === undefined && addr.match(/172.17.0./)) {
 		servers[addr] = new Server(String(addr), String(rcon_pass));
 	}
 
@@ -120,18 +139,23 @@ s.on('message', function (msg, info) {
 		if (match.capture('steam_id') != 'BOT') {
 			var conName = match.capture('user_name');
 			var conId = match.capture('steam_id');
-			request('http://akl.tite.fi/akl-service/api/users/steamid/'+match.capture('steam_id'), function (error, response, body) {
+			var conId64 = id64(conId);
+			request('http://akl.tite.fi/akl-service/api/users/communityid/'+conId64, function (error, response, body) {
+				console.log(response);
 				if (error) {
-					servers[addr].say('Letting '+conName+' connect because AKL API is not responding.');
+					servers[addr].say('Letting '+conName+' connect because AKL API is not responding :D');
 					return;
 				}
 				if (response.statusCode == 200) {
-					//servers[addr].say(conName + ' (connecting) is a registered sex offender.');
+					servers[addr].say(conName + ' (connecting) is a registered user.');
 				} else if (whitelisted(conId)) {
-					//servers[addr].say(conName+' (connecting) is whitelisted.');
+					servers[addr].say(conName+' (connecting) is whitelisted.');
 				} else {
 					servers[addr].say(conName + ' tried to connect, but is not registered.');
 					servers[addr].rcon('kickid '+conId+' This account is not registered on akl.tite.fi');
+				}
+				if (body.match(/(ROLE_ADMIN|ROLE_REFEREE)/) && admins64.indexOf(conId64) < 0) {
+					admins64.push(conId64);
 				}
 			});
 		}		
@@ -289,6 +313,9 @@ s.on('message', function (msg, info) {
 			break;
 		case 'debug':
 			servers[addr].debug();
+			break;
+		case 'bo1':
+			servers[addr].bo1();
 			break;
 		default:
 		}
