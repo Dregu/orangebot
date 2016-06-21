@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "ip": "latest",
+    "irc": "^0.5.0",
     "named-regexp": "latest",
     "nconf": "latest",
     "node-telegram-bot-api": "latest",

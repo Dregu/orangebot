@@ -32,7 +32,6 @@ var static = [
 	}
 ];
 var rcon_pass = 'mermaidstory';
-//var whitelist = ['STEAM_1:0:4534656'];
 var whitelist = [];
 var pool = [
 	'cache',
@@ -43,32 +42,46 @@ var pool = [
 	'overpass',
 	'train'
 ];
+var gotv = {
+	'172.17.0.2:27015': 'menocs1.luminet.fi:27020',
+	'172.17.0.3:27015': 'menocs2.luminet.fi:27020',
+	'172.17.0.4:27015': 'menocs3.luminet.fi:27020',
+	'172.17.0.5:27015': 'menocs4.luminet.fi:27020',
+	'172.17.0.6:27015': 'menocs5.luminet.fi:27020'
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
-var WARMUP = 'say \x10Match will start when both teams are \x06!ready\x10.',
-	WARMUP_KNIFE = 'say \x10Knife round will start when both teams are \x06!ready\x10.',
-	KNIFE_DISABLED = 'say \x10Cancelled knife round.',
-	KNIFE_STARTING = 'mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;mp_maxmoney 0;mp_t_default_secondary "";mp_ct_default_secondary "";mp_free_armor 1;mp_give_player_c4 0;log on;tv_record {0};say \x10Both teams are \x06!ready\x10, starting knife round in:;say \x085...',
-	KNIFE_STARTED = 'say \x10Knife round started! GL HF!',
-	KNIFE_WON = 'mp_pause_match;mp_maxmoney 16000;mp_t_default_secondary "weapon_glock";mp_ct_default_secondary "weapon_hkp2000";mp_free_armor 0;mp_give_player_c4 1;say \x06{0} \x10won the knife round!;say \x10Do you want to \x06!stay\x10 or \x06!swap\x10?',
-	KNIFE_STAY = 'mp_unpause_match;mp_restartgame 1;say \x10Match started! GL HF!',
-	KNIFE_SWAP = 'mp_unpause_match;mp_swapteams;say \x10Match started! GL HF!',
-	PAUSE_ENABLED = 'mp_pause_match;say \x10Pausing match on freeze time!',
-	MATCH_STARTING = 'mp_maxmoney 16000;mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;log on;tv_record {0};say \x10Both teams are \x06!ready\x10, starting match in:;say \x085...',
-	MATCH_STARTED = 'say \x10Match started! GL HF!',
-	MATCH_PAUSED = 'mp_respawn_on_death_t 1;mp_respawn_on_death_ct 1;say \x10Match will resume when both teams are \x06!ready\x10.',
-	MATCH_UNPAUSE = 'mp_respawn_on_death_t 0;mp_respawn_on_death_ct 0;mp_unpause_match;say \x10Both teams are \x06!ready\x10, resuming match!',
+var WARMUP = 'script ScriptPrintMessageChatAll(" \x10Match will start when both teams are \x06!ready\x10.")',
+	WARMUP_KNIFE = 'script ScriptPrintMessageChatAll(" \x10Knife round will start when both teams are \x06!ready\x10.")',
+	KNIFE_DISABLED = 'script ScriptPrintMessageChatAll(" \x10Cancelled knife round.")',
+	KNIFE_STARTING = 'mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;mp_maxmoney 0;mp_t_default_secondary "";mp_ct_default_secondary "";mp_free_armor 1;mp_give_player_c4 0;log on;tv_record {0};script ScriptPrintMessageChatAll(" \x10Both teams are \x06!ready\x10, starting knife round in:");script ScriptPrintMessageChatAll(" \x085...")',
+	KNIFE_STARTED = 'script ScriptPrintMessageChatAll(" \x10Knife round started! GL HF!")',
+	KNIFE_WON = 'mp_pause_match;mp_maxmoney 16000;mp_t_default_secondary "weapon_glock";mp_ct_default_secondary "weapon_hkp2000";mp_free_armor 0;mp_give_player_c4 1;script ScriptPrintMessageChatAll(" \x06{0} \x10won the knife round!");script ScriptPrintMessageChatAll(" \x10Do you want to \x06!stay\x10 or \x06!swap\x10?")',
+	KNIFE_STAY = 'mp_unpause_match;mp_restartgame 1;script ScriptPrintMessageChatAll(" \x10Match started! GL HF!")',
+	KNIFE_SWAP = 'mp_unpause_match;mp_swapteams;script ScriptPrintMessageChatAll(" \x10Match started! GL HF!")',
+	PAUSE_ENABLED = 'mp_pause_match;script ScriptPrintMessageChatAll(" \x10Pausing match on freeze time!")',
+	MATCH_STARTING = 'mp_maxmoney 16000;mp_unpause_match;mp_warmup_pausetimer 0;mp_warmuptime 6;mp_warmup_start;log on;tv_record {0};script ScriptPrintMessageChatAll(" \x10Both teams are \x06!ready\x10, starting match in:");script ScriptPrintMessageChatAll(" \x085...")',
+	MATCH_STARTED = 'script ScriptPrintMessageChatAll(" \x10Match started! GL HF!")',
+	MATCH_PAUSED = 'mp_respawn_on_death_t 1;mp_respawn_on_death_ct 1;script ScriptPrintMessageChatAll(" \x10Match will resume when both teams are \x06!ready\x10.")',
+	//MATCH_PAUSED = 'mp_respawn_on_death_t 1;mp_respawn_on_death_ct 1',
+	MATCH_UNPAUSE = 'mp_respawn_on_death_t 0;mp_respawn_on_death_ct 0;mp_unpause_match;script ScriptPrintMessageChatAll(" \x10Both teams are \x06!ready\x10, resuming match!")',
 	ROUND_STARTED = 'mp_respawn_on_death_t 0;mp_respawn_on_death_ct 0',
-	READY = 'say \x10{0} are \x06!ready\x10, waiting for {1}.',
-	LIVE = 'say \x03LIVE!;say \x0eLIVE!;say \x02LIVE!',
-	VETO = 'say \x10Starting map veto. {0}, \x06!ban\x10 the first map. (\x06{1}\x10)',
+	READY = 'script ScriptPrintMessageChatAll(" \x10{0} are \x06!ready\x10, waiting for {1}.")',
+	LIVE = 'script ScriptPrintMessageChatAll(" \x03LIVE!");script ScriptPrintMessageChatAll(" \x0eLIVE!");script ScriptPrintMessageChatAll(" \x02LIVE!")',
+	VETO = ' \x10Starting map veto. {0}, \x06!ban\x10 the first map. (\x06{1}\x10)',
 	T = 'Terrorists',
 	CT = 'Counter-Terrorists',
-	CONFIG = 'game_type 0;game_mode 1;ammo_grenade_limit_default 1;ammo_grenade_limit_flashbang 2;ammo_grenade_limit_total 4;bot_quota 0;cash_player_bomb_defused 300;cash_player_bomb_planted 300;cash_player_damage_hostage -30;cash_player_interact_with_hostage 150;cash_player_killed_enemy_default 300;cash_player_killed_enemy_factor 1;cash_player_killed_hostage -1000;cash_player_killed_teammate -300;cash_player_rescued_hostage 1000;cash_team_elimination_bomb_map 3250;cash_team_hostage_alive 150;cash_team_hostage_interaction 150;cash_team_loser_bonus 1400;cash_team_loser_bonus_consecutive_rounds 500;cash_team_planted_bomb_but_defused 800;cash_team_rescued_hostage 750;cash_team_terrorist_win_bomb 3500;cash_team_win_by_defusing_bomb 3500;cash_team_win_by_hostage_rescue 3500;cash_player_get_killed 0;cash_player_respawn_amount 0;cash_team_elimination_hostage_map_ct 2000;cash_team_elimination_hostage_map_t 1000;cash_team_win_by_time_running_out_bomb 3250;cash_team_win_by_time_running_out_hostage 3250;ff_damage_reduction_grenade 0.85;ff_damage_reduction_bullets 0.33;ff_damage_reduction_other 0.4;ff_damage_reduction_grenade_self 1;mp_afterroundmoney 0;mp_autokick 0;mp_autoteambalance 0;mp_buytime 15;mp_c4timer 40;mp_death_drop_defuser 1;mp_death_drop_grenade 2;mp_death_drop_gun 1;mp_defuser_allocation 0;mp_do_warmup_period 1;mp_forcecamera 1;mp_force_pick_time 160;mp_free_armor 0;mp_freezetime 12;mp_friendlyfire 1;mp_halftime 1;mp_halftime_duration 15;mp_join_grace_time 30;mp_limitteams 0;mp_logdetail 3;mp_match_can_clinch 1;mp_match_end_changelevel 1;mp_match_end_restart 0;mp_match_restart_delay 120;mp_maxmoney 65535;mp_maxrounds 30;mp_molotovusedelay 0;mp_overtime_enable 1;mp_overtime_maxrounds 6;mp_overtime_startmoney 10000;mp_playercashawards 1;mp_playerid 0;mp_playerid_delay 0.5;mp_playerid_hold 0.25;mp_round_restart_delay 5;mp_roundtime 1.92;mp_roundtime_defuse 1.92;mp_solid_teammates 1;mp_startmoney 800;mp_teamcashawards 1;mp_teammatchstat_holdtime 0;mp_teammatchstat_txt "";mp_timelimit 0;mp_tkpunish 0;mp_weapons_allow_map_placed 1;mp_weapons_allow_zeus 1;mp_win_panel_display_time 15;spec_freeze_time 3.0;spec_freeze_panel_extended_time 0;spec_freeze_time_lock 2;spec_freeze_deathanim_time 0;sv_accelerate 5.5;sv_stopspeed 80;sv_allow_votes 0;sv_allow_wait_command 0;sv_alltalk 0;sv_alternateticks 0;sv_auto_full_alltalk_during_warmup_half_end 0;sv_cheats 0;sv_clockcorrection_msecs 15;sv_consistency 0;sv_contact 0;sv_damage_print_enable 0;sv_dc_friends_reqd 0;sv_deadtalk 0;sv_forcepreload 0;sv_friction 5.2;sv_full_alltalk 0;sv_gameinstructor_disable 1;sv_ignoregrenaderadio 0;sv_kick_players_with_cooldown 0;sv_kick_ban_duration 0;sv_lan 0;sv_log_onefile 0;sv_logbans 1;sv_logecho 0;sv_logfile 1;sv_logflush 0;sv_logsdir matches;sv_maxrate 0;sv_mincmdrate 30;sv_minrate 20000;sv_competitive_minspec 1;sv_competitive_official_5v5 1;sv_pausable 1;sv_pure 1;sv_pure_kick_clients 1;sv_pure_trace 0;sv_spawn_afk_bomb_drop_time 30;sv_steamgroup_exclusive 0;mp_respawn_on_death_t 0;mp_respawn_on_death_ct 0;mp_unpause_match;sv_vote_allow_in_warmup 1;sv_vote_allow_spectators 1;sv_vote_command_delay 2;sv_vote_count_spectator_votes 0;sv_vote_creation_timer 1;sv_vote_disallow_kick_on_match_point 1;sv_vote_failure_timer 1;sv_vote_issue_kick_allowed 0;sv_vote_issue_loadbackup_allowed 1;sv_vote_issue_restart_game_allowed 1;sv_vote_kick_ban_duration 0;sv_vote_quorum_ratio 0.7;sv_vote_timer_duration 30;sv_vote_to_changelevel_before_match_point 0;mp_warmuptime 15;mp_warmup_start;mp_warmup_pausetimer 1;say \x10Match will start when both teams are \x06!ready\x10.';
+	CONFIG = 'game_type 0;game_mode 1;ammo_grenade_limit_default 1;ammo_grenade_limit_flashbang 2;ammo_grenade_limit_total 4;bot_quota 0;cash_player_bomb_defused 300;cash_player_bomb_planted 300;cash_player_damage_hostage -30;cash_player_interact_with_hostage 150;cash_player_killed_enemy_default 300;cash_player_killed_enemy_factor 1;cash_player_killed_hostage -1000;cash_player_killed_teammate -300;cash_player_rescued_hostage 1000;cash_team_elimination_bomb_map 3250;cash_team_hostage_alive 150;cash_team_hostage_interaction 150;cash_team_loser_bonus 1400;cash_team_loser_bonus_consecutive_rounds 500;cash_team_planted_bomb_but_defused 800;cash_team_rescued_hostage 750;cash_team_terrorist_win_bomb 3500;cash_team_win_by_defusing_bomb 3500;cash_team_win_by_hostage_rescue 3500;cash_player_get_killed 0;cash_player_respawn_amount 0;cash_team_elimination_hostage_map_ct 2000;cash_team_elimination_hostage_map_t 1000;cash_team_win_by_time_running_out_bomb 3250;cash_team_win_by_time_running_out_hostage 3250;ff_damage_reduction_grenade 0.85;ff_damage_reduction_bullets 0.33;ff_damage_reduction_other 0.4;ff_damage_reduction_grenade_self 1;mp_afterroundmoney 0;mp_autokick 0;mp_autoteambalance 0;mp_buytime 15;mp_c4timer 40;mp_death_drop_defuser 1;mp_death_drop_grenade 2;mp_death_drop_gun 1;mp_defuser_allocation 0;mp_do_warmup_period 1;mp_forcecamera 1;mp_force_pick_time 160;mp_free_armor 0;mp_freezetime 12;mp_friendlyfire 1;mp_halftime 1;mp_halftime_duration 15;mp_join_grace_time 30;mp_limitteams 0;mp_logdetail 3;mp_match_can_clinch 1;mp_match_end_changelevel 1;mp_match_end_restart 0;mp_match_restart_delay 120;mp_maxmoney 65535;mp_maxrounds 30;mp_molotovusedelay 0;mp_overtime_enable 1;mp_overtime_maxrounds 6;mp_overtime_startmoney 10000;mp_playercashawards 1;mp_playerid 0;mp_playerid_delay 0.5;mp_playerid_hold 0.25;mp_round_restart_delay 5;mp_roundtime 1.92;mp_roundtime_defuse 1.92;mp_solid_teammates 1;mp_startmoney 800;mp_teamcashawards 1;mp_teammatchstat_holdtime 0;mp_teammatchstat_txt "";mp_timelimit 0;mp_tkpunish 0;mp_weapons_allow_map_placed 1;mp_weapons_allow_zeus 1;mp_win_panel_display_time 15;spec_freeze_time 3.0;spec_freeze_panel_extended_time 0;spec_freeze_time_lock 2;spec_freeze_deathanim_time 0;sv_accelerate 5.5;sv_stopspeed 80;sv_allow_votes 0;sv_allow_wait_command 0;sv_alltalk 0;sv_alternateticks 0;sv_auto_full_alltalk_during_warmup_half_end 0;sv_cheats 0;sv_clockcorrection_msecs 15;sv_consistency 0;sv_contact 0;sv_damage_print_enable 0;sv_dc_friends_reqd 0;sv_deadtalk 0;sv_forcepreload 0;sv_friction 5.2;sv_full_alltalk 0;sv_gameinstructor_disable 1;sv_ignoregrenaderadio 0;sv_kick_players_with_cooldown 0;sv_kick_ban_duration 0;sv_lan 0;sv_log_onefile 0;sv_logbans 1;sv_logecho 0;sv_logfile 1;sv_logflush 0;sv_logsdir matches;sv_maxrate 0;sv_mincmdrate 30;sv_minrate 20000;sv_competitive_minspec 1;sv_competitive_official_5v5 1;sv_pausable 1;sv_pure 1;sv_pure_kick_clients 1;sv_pure_trace 0;sv_spawn_afk_bomb_drop_time 30;sv_steamgroup_exclusive 0;mp_respawn_on_death_t 0;mp_respawn_on_death_ct 0;mp_unpause_match;sv_vote_allow_in_warmup 1;sv_vote_allow_spectators 1;sv_vote_command_delay 2;sv_vote_count_spectator_votes 0;sv_vote_creation_timer 1;sv_vote_disallow_kick_on_match_point 1;sv_vote_failure_timer 1;sv_vote_issue_kick_allowed 0;sv_vote_issue_loadbackup_allowed 1;sv_vote_issue_restart_game_allowed 1;sv_vote_kick_ban_duration 0;sv_vote_quorum_ratio 0.7;sv_vote_timer_duration 30;sv_vote_to_changelevel_before_match_point 0;mp_warmuptime 15;mp_warmup_start;mp_warmup_pausetimer 1;tv_stoprecord';
 
 ///////////////////////////////////////////////////////////////////////////////
 
+var Irc = require('irc');
+var irc = new Irc.Client('irc.cc.tut.fi', 'AKLBot', {
+	channels: ['#akl', '#kynarilaarnio'],
+	realName: 'Akateeminen kynäriliiga',
+	autoRejoin: true
+});
 var named = require('named-regexp').named;
 var rcon = require('simple-rcon');
 var dns = require('dns');
@@ -93,7 +106,12 @@ bot.on('message', function (msg) {
 		var match = re.exec(msg.reply_to_message.text);
 		if (match !== null) {
 			var addr = match.capture('addr');
-			servers[addr].say(message);
+			if (message.match(/^!/)) {
+				servers[addr].say(message);
+			} else {
+				servers[addr].chat(' \x06Admin: \x10' + message);
+				servers[addr].center('Admin: ' + message);
+			}
 		}
 	}
 });
@@ -149,15 +167,15 @@ s.on('message', function (msg, info) {
 			request('http://akl.tite.fi/akl-service/api/users/communityid/'+conId64, function (error, response, body) {
 				//console.log(response);
 				if (error) {
-					servers[addr].say('Letting '+conName+' connect because AKL API is not responding :D');
+					servers[addr].chat(' \x10Letting '+conName+' connect because AKL API is not responding :D');
 					return;
 				}
 				if (response.statusCode == 200) {
-					servers[addr].say(conName + ' is a registered user.');
+					servers[addr].chat(' \x10' + conName + ' (connecting) is a registered user.');
 				} else if (whitelisted(conId)) {
-					servers[addr].say(conName + ' is whitelisted.');
+					servers[addr].chat(' \x10' + conName + ' (connecting) is whitelisted.');
 				} else {
-					servers[addr].say(conName + ' tried to connect, but is not registered.');
+					servers[addr].chat(' \x10' + conName + ' tried to connect, but is not registered.');
 					servers[addr].rcon('kickid '+conId+' This account is not registered on akl.tite.fi');
 				}
 				if (body.match(/(ROLE_ADMIN|ROLE_REFEREE)/gm) && admins64.indexOf(conId64) < 0) {
@@ -278,7 +296,15 @@ s.on('message', function (msg, info) {
 		case 'start':
 		case 'match':
 		case 'startmatch':
-			if (isadmin || !servers[addr].get().live) servers[addr].start(param);
+			if (isadmin || !servers[addr].get().live) {
+				servers[addr].start(param);
+				console.log(Object.keys(servers[addr].state.players).length);
+				if (gotv[addr] !== undefined && Object.keys(servers[addr].state.players).length >= 6) {
+					var teams = servers[addr].clantag('TERRORIST') + ' - ' + servers[addr].clantag('CT');
+					irc.say('#akl', 'Hei, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
+					irc.say('#kynarilaarnio', 'Hei, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
+				}
+			}
 			break;
 		case 'force':
 			if (isadmin) servers[addr].ready(true);
@@ -312,7 +338,10 @@ s.on('message', function (msg, info) {
 			}
 			break;
 		case 'say':
-			if (isadmin) servers[addr].say(param.join(' '));
+			if (isadmin) {
+				servers[addr].chat(' \x06Admin: \x10' + param.join(' '));
+				servers[addr].center('Admin: ' + param.join(' '));
+			}
 			break;
 		case 'whitelist':
 			if (isadmin) whitelist.push(param.join(' '));
@@ -334,7 +363,7 @@ function clean(str) {
 }
 
 function cleansay(str) {
-	return str.replace('ä', 'a').replace('ö', 'o').replace(/[^A-Za-z0-9:<>.?! \-_,]/g, '');
+	return str.replace('ä', 'a').replace('ö', 'o').replace(/[^A-Za-z0-9\(\)\[\]:<>.?! \-_,\x06\x10\x05\x10\x0e\x0f\x08]/g, '');
 }
 
 function Player(steamid, team, name, clantag) {
@@ -371,7 +400,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 		queue: [],
 		players: {},
 		banner: '',
-		pool: []
+		pool: [],
+		banned: []
 	};
 	if (adminid !== undefined && tag.state.steamid.indexOf(adminid) == -1) {
 		tag.state.steamid.push(id64(adminid));
@@ -407,10 +437,14 @@ function Server(address, pass, adminip, adminid, adminname) {
 			return team;
 		}
 		var tags = {};
-		var ret = 'plebs';
+		/*var ret = 'plebs';
 		if (team == 'CT' && this.clantag('TERRORIST') == 'plebs') {
 			ret = 'noobs';
-		}
+		}*/
+		var ret = 'Team';
+		if (team == 'TERRORIST') ret = T;
+		else if (team == 'CT') ret = CT;
+
 		for (var i in this.state.players) {
 			if (this.state.players[i].team == team && this.state.players[i].clantag !== undefined) {
 				if (tags[this.state.players[i].clantag] === undefined) {
@@ -423,6 +457,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		for (var prop in tags) {
 			if (tags.hasOwnProperty(prop) && tags[prop] > max) {
 				ret = prop;
+				max = tags[prop];
 			}
 		}
 		ret = clean(ret);
@@ -473,9 +508,9 @@ function Server(address, pass, adminip, adminid, adminname) {
 			scores.push(stat[team1][j] + '-' + stat[team2][j]);
 		}
 		var out = team1 + ' [' + scores.join(', ') + '] ' + team2;
-		var chat = '\x10' + team1 + ' [\x06' + maps.join(', ') + '\x10] ' + team2;
+		var chat = ' \x10' + team1 + ' [\x06' + maps.join(', ') + '\x10] ' + team2;
 		if (tochat) {
-			this.rcon('say ' + chat);
+			this.chat(chat);
 		} else {
 			this.rcon('mp_teammatchstat_txt "' + out + '"');
 		}
@@ -555,13 +590,14 @@ function Server(address, pass, adminip, adminid, adminname) {
 			}
 		} else {
 			this.state.pool = pool.slice(0);
+			this.state.banned = [];
 			this.state.banner = getRandom(['CT', 'TERRORIST']);
-			this.rcon(VETO.format(this.state.banner, this.state.pool.join(', ')));
+			this.chat(VETO.format(this.clantag(this.state.banner), this.state.pool.join(', ')));
 		}
 	};
 	this.ban = function (map, team) {
 		if (this.state.banner !== team) {
-			this.say('It\'s not your turn, ' + team + '!');
+			this.chat(' \x10It\'s not your turn, ' + this.clantag(team) + '!');
 			return;
 		}
 		map = map.join(' ');
@@ -574,11 +610,12 @@ function Server(address, pass, adminip, adminid, adminname) {
 				}
 			}
 			if (banned !== '') {
-				var message =  '\x10' + this.state.banner + ' banned ' + banned + '. ';
+				this.state.banned.push(banned);
+				var message =  ' \x10' + this.clantag(this.state.banner) + ' banned ' + banned + '. ';
 				if (this.state.pool.length > 3) {
 					if (this.state.banner == 'CT') this.state.banner = 'TERRORIST';
 					else this.state.banner = 'CT';
-					message += this.state.banner + ', \x06!ban\x10 the next map. (\x06' + this.state.pool.join(', ') + '\x10)';
+					message += this.clantag(this.state.banner) + ', \x06!ban\x10 the next map. (\x06' + this.state.pool.join(', ') + '\x10)';
 				} else {
 					message += 'Starting a random map. (\x06' + this.state.pool.join(', ') + '\x10)';
 					var vetomap = 'de_' + getRandom(this.state.pool);
@@ -587,10 +624,10 @@ function Server(address, pass, adminip, adminid, adminname) {
 						tag.rcon('changelevel '+vetomap);
 					}, 5000);
 				}
-				this.rcon('say ' + message);
+				this.chat(message);
 			}
 		} else {
-			this.say('I don\'t undestand.');
+			this.chat(' \x10I don\'t undestand.');
 		}
 	};
 	this.ready = function (team) {
@@ -639,19 +676,20 @@ function Server(address, pass, adminip, adminid, adminname) {
 					parse_mode: 'Markdown'
 				});
 				setTimeout(function () {
-					tag.rcon('say \x054...');
+					tag.chat(' \x054...');
 				}, 1000);
 				setTimeout(function () {
-					tag.rcon('say \x063...');
+					tag.chat(' \x063...');
 				}, 2000);
 				setTimeout(function () {
-					tag.rcon('say \x102...');
+					tag.chat(' \x102...');
 				}, 3000);
 				setTimeout(function () {
-					tag.rcon('say \x0f1...');
+					tag.chat(' \x0f1...');
 				}, 4000);
 				setTimeout(function () {
 					tag.rcon(LIVE);
+					tag.rcon('script ScriptPrintMessageCenterAll("Match is LIVE! GL HF!")');
 				}, 5000);
 			}
 		}
@@ -729,8 +767,13 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.stats(true);
 	};
 	this.say = function (msg) {
-		//this.rcon('say \x10' + cleansay(msg));
 		this.rcon('say ' + cleansay(msg));
+	};
+	this.chat = function (msg) {
+		this.rcon('script ScriptPrintMessageChatAll("' + cleansay(msg) + '")');
+	};
+	this.center = function (msg) {
+		this.rcon('script ScriptPrintMessageCenterAll("' + cleansay(msg) + '")');
 	};
 	this.warmup = function () {
 		this.state.ready = {
@@ -753,7 +796,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 	this.rcon('sv_rcon_whitelist_address ' + myip + ';logaddress_add ' + myip + ':' + myport + ';log on');
 	this.status();
 	setTimeout(function () {
-		tag.rcon('say \x10Hi! I\'m OrangeBot.' + (tag.state.admins.length > 0 ? ' \x0e' + tag.state.admins.join(', ') + '\x10 is now my admin.' : '') + ';say \x10Start a match with \x06!start map \x08map map');
+		tag.chat(' \x10Hi! I\'m OrangeBot.' + (tag.state.admins.length > 0 ? ' \x0e' + tag.state.admins.join(', ') + '\x10 is now my admin.' : ''));
+		tag.chat(' \x10Start a match with \x06!start map \x08map map');
 	}, 1000);
 	console.log('Connected to ' + this.state.ip + ':' + this.state.port + ', pass ' + this.state.pass);
 }
@@ -777,6 +821,23 @@ setInterval(function () {
 		}
 	}
 }, 30000);
+setInterval(function () {
+	for (var i in servers) {
+		if (!servers.hasOwnProperty(i)) return;
+		if (!servers[i].state.live && servers[i].state.pool.length > 0) {
+			servers[i].rcon('tv_msg Ban: ' + servers[i].state.banned.join(', ') + '                                                                                                        Left: ' + servers[i].state.pool.join(', '));
+		}
+		if (!servers[i].state.live && servers[i].state.pool.length == 0) {
+			if (servers[i].state.knife) {
+				servers[i].rcon('script ScriptPrintMessageCenterAll("Knife round will start when both teams are !ready")');
+			} else {
+				servers[i].rcon('script ScriptPrintMessageCenterAll("Match will start when both teams are !ready")');
+			}
+		} else if (servers[i].state.paused && servers[i].state.freeze) {
+			servers[i].rcon('script ScriptPrintMessageCenterAll("Match will resume when both teams are !ready")');
+		}
+	}
+}, 1000);
 setInterval(function () {
 	for (var i in servers) {
 		if (servers[i].state.queue.length > 0) {
