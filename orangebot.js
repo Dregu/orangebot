@@ -633,11 +633,11 @@ function Server(address, pass, adminip, adminid, adminname) {
 					setTimeout(function () {
 						tag.rcon(MATCH_STARTED);
 					}, 9000);
-					var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match started*";
-					bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
-						parse_mode: 'Markdown'
-					});
 				}
+				var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match started*";
+				bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
+					parse_mode: 'Markdown'
+				});
 				setTimeout(function () {
 					tag.rcon('say \x054...');
 				}, 1000);
@@ -657,10 +657,10 @@ function Server(address, pass, adminip, adminid, adminname) {
 		}
 	};
 	this.newmap = function (map, delay) {
-		var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(map, '*' + map + '*').replace(/de_/g, '') + "\n*Map loaded*";
+		/*var message = this.stats(false) + "\n" + this.state.maps.join(' ').replace(map, '*' + map + '*').replace(/de_/g, '') + "\n*Map loaded*";
 		bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
 			parse_mode: 'Markdown'
-		});
+		});*/
 		if (delay === undefined) delay = 10000;
 		var index = -1;
 		if (this.state.maps.indexOf(map) >= 0) {
