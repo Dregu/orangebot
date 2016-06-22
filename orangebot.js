@@ -230,10 +230,13 @@ s.on('message', function (msg, info) {
 	re = named(/Loading map "(:<map>.*?)"/);
 	match = re.exec(text);
 	if (match !== null) {
-		for (var prop in servers[addr].state.playerrs) {
+		for (var prop in servers[addr].state.players) {
 			if (servers[addr].state.players.hasOwnProperty(prop)) {
 				delete servers[addr].state.players[prop];
 			}
+		}
+		if (servers[addr].state.round > 14) {
+			servers[addr].win();
 		}
 		servers[addr].lastlog = +new Date();
 	}
@@ -301,8 +304,8 @@ s.on('message', function (msg, info) {
 				servers[addr].start(param);
 				if (gotv[addr] !== undefined && Object.keys(servers[addr].state.players).length >= 6) {
 					var teams = servers[addr].clantag('TERRORIST') + ' - ' + servers[addr].clantag('CT');
-					irc.say('#akl', 'Hei, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
-					irc.say('#kynarilaarnio', 'Hei, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
+					irc.say('#akl', 'tissit, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
+					irc.say('#kynarilaarnio', 'tissit, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
 				}
 			}
 			break;
@@ -384,6 +387,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		maps: [],
 		knife: true,
 		score: [],
+		round: 0,
 		knifewinner: false,
 		paused: false,
 		freeze: false,
@@ -401,7 +405,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 		players: {},
 		banner: '',
 		pool: [],
-		banned: []
+		banned: [],
+		stats: ''
 	};
 	if (adminid !== undefined && tag.state.steamid.indexOf(adminid) == -1) {
 		tag.state.steamid.push(id64(adminid));
@@ -513,6 +518,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			this.chat(chat);
 		} else {
 			this.rcon('mp_teammatchstat_txt "' + out + '"');
+			this.state.stats = out;
 		}
 		return out.replace(/\x10/g, '').replace(/\x06/g, '').replace(/_/g, '\\_');
 	};
@@ -520,6 +526,15 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.state.freeze = false;
 		this.state.paused = false;
 		this.rcon(ROUND_STARTED);
+		this.state.round++;
+	};
+	this.win = function () {
+		irc.say('#akl', 'Matsi päättyi! (' + this.state.stats + ')');
+		irc.say('#kynarilaarnio', 'Matsi päättyi! (' + this.state.stats + ')');
+		var message = this.state.stats + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match ended*";
+		bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
+			parse_mode: 'Markdown'
+		});
 	};
 	this.pause = function () {
 		if (!this.state.live) return;
@@ -659,6 +674,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 				this.rcon(READY.format(this.state.ready.TERRORIST ? T : CT, this.state.ready.TERRORIST ? CT : T));
 			} else if (this.state.ready.TERRORIST === true && this.state.ready.CT === true) {
 				this.state.live = true;
+				this.state.round = 0;
 				var demo = 'matches/' + new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').replace(/\..+/, '') + '_' + this.state.map + '_' + clean(this.clantag('TERRORIST')) + '-' + clean(this.clantag('CT')) + '.dem';
 				if (this.state.knife) {
 					this.rcon(KNIFE_STARTING.format(demo));
@@ -749,12 +765,14 @@ function Server(address, pass, adminip, adminid, adminname) {
 	};
 	this.stay = function (team) {
 		if (team == this.state.knifewinner) {
+			this.state.round = 0;
 			this.rcon(KNIFE_STAY);
 			this.state.knifewinner = false;
 		}
 	};
 	this.swap = function (team) {
 		if (team == this.state.knifewinner) {
+			this.state.round = 0;
 			this.rcon(KNIFE_SWAP);
 			this.state.knifewinner = false;
 		}
@@ -763,7 +781,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.rcon('logaddress_delall;log off;say \x10I\'m outta here!');
 	};
 	this.debug = function () {
-		this.rcon('say \x10live: ' + this.state.live + ' paused: ' + this.state.paused + ' freeze: ' + this.state.freeze + ' knife: ' + this.state.knife + ' knifewinner: ' + this.state.knifewinner + ' ready: T:' + this.state.ready.TERRORIST + ' CT:' + this.state.ready.CT + ' unpause: T:' + this.state.unpause.TERRORIST + ' CT:' + this.state.unpause.CT);
+		this.rcon('say \x10round: ' + this.state.round + ' live: ' + this.state.live + ' paused: ' + this.state.paused + ' freeze: ' + this.state.freeze + ' knife: ' + this.state.knife + ' knifewinner: ' + this.state.knifewinner + ' ready: T:' + this.state.ready.TERRORIST + ' CT:' + this.state.ready.CT + ' unpause: T:' + this.state.unpause.TERRORIST + ' CT:' + this.state.unpause.CT);
 		this.stats(true);
 	};
 	this.say = function (msg) {
@@ -791,6 +809,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.state.knife = true;
 		this.state.pool = [];
 		this.state.banner = '';
+		this.state.round = 0;
 		this.rcon(CONFIG);
 	};
 	this.rcon('sv_rcon_whitelist_address ' + myip + ';logaddress_add ' + myip + ':' + myport + ';log on');
