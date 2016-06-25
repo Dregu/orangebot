@@ -20,7 +20,7 @@ Current master branch contains our league specific features like irc announcemen
 | !pause                 | Pauses the match on next freeze time. Match will resume when both teams are !ready.                                                   |
 | !swap                  | Swap teams after knife round. Match is LIVE after one restart. (Aliases: !switch)                                                     |
 | !stay                  | Stay on this team after knife round. Match is LIVE after one restart.                                                                 |
-| !admin                 | 
+| !admin [msg]           | Message an admin on telegram. |
 | !score                 | Check what the score was in previous maps in BO[n] game. (Aliases: !stats, !status, !scores)                                          |
 
 | Admin commands         | Function                                                                                                                              |
