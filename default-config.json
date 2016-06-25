@@ -1,0 +1,34 @@
+{
+  "ip": "",
+  "port": 1337,
+  "admins": [],
+  "rcon_pass": "password",
+  "static": [
+    {
+      "host": "127.0.0.1",
+      "port": 27015,
+      "pass": "password"
+    }
+  ],
+  "whitelist": [],
+  "pool": [
+    "cache",
+    "cbble",
+    "dust2",
+    "inferno",
+    "mirage",
+    "overpass",
+    "train"
+  ],
+  "gotv": {},
+  "irc": {
+    "nick": "OrangeBot",
+    "server": "localhost",
+    "channels": [
+      "#orangechannel"
+    ],
+    "realname": "Agent Orange"
+  },
+  "token": "",
+  "group": ""
+}
