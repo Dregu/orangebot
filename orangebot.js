@@ -251,10 +251,10 @@ s.on('message', function (msg, info) {
 		case 'startmatch':
 			if (isadmin || !servers[addr].get().live) {
 				servers[addr].start(param);
-				if (gotv[addr] !== undefined && Object.keys(servers[addr].state.players).length >= 6) {
+				if (gotv[info.address][info.port] !== undefined && Object.keys(servers[addr].state.players).length >= 6) {
 					var teams = servers[addr].clantag('TERRORIST') + ' - ' + servers[addr].clantag('CT');
 					for (var i in nconf.get('irc:channels')) {
-						irc.say(nconf.get('irc:channels')[i], 'tissit, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[addr]);
+						irc.say(nconf.get('irc:channels')[i], 'tissit, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[info.address][info.port]);
 					}
 				}
 			}
