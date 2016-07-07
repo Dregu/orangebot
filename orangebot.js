@@ -75,9 +75,28 @@ function whitelisted(steamid) {
 	return false;
 }
 
+function shuffle(array) {
+	var m = array.length, t, i;
+
+	// While there remain elements to shuffle…
+	while (m) {
+
+		// Pick a remaining element…
+		i = Math.floor(Math.random() * m--);
+
+		// And swap it with the current element.
+		t = array[m];
+		array[m] = array[i];
+		array[i] = t;
+	}
+
+	return array;
+}
+
 function getRandom(arr) {
-	var i = Math.floor(Math.random()*arr.length);
-	return arr[i];
+	var newArr = arr.slice(0);
+	shuffle(newArr);
+	return newArr[0];
 }
 
 function id64(steamid) {
@@ -313,6 +332,10 @@ s.on('message', function (msg, info) {
 
 function clean(str) {
 	return str.replace(/[^A-Za-z0-9: \-_,]/g, '');
+}
+
+function cleandemo(str) {
+	return str.replace(/[^A-Za-z0-9\-_]/g, '');
 }
 
 function cleansay(str) {
@@ -626,7 +649,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			} else if (this.state.ready.TERRORIST === true && this.state.ready.CT === true) {
 				this.state.live = true;
 				this.state.round = 0;
-				var demo = 'matches/' + new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').replace(/\..+/, '') + '_' + this.state.map + '_' + clean(this.clantag('TERRORIST')) + '-' + clean(this.clantag('CT')) + '.dem';
+				var demo = 'matches/' + new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').replace(/\..+/, '') + '_' + this.state.map + '_' + cleandemo(this.clantag('TERRORIST')) + '-' + cleandemo(this.clantag('CT')) + '.dem';
 				if (this.state.knife) {
 					this.rcon(KNIFE_STARTING.format(demo));
 					setTimeout(function () {
