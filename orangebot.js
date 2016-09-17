@@ -599,7 +599,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			}
 			if (picked !== '') {
 				this.state.picked.push(picked);
-				var message =  ' \x10' + this.clantag(this.state.banner) + ' picked ' + banned + '. ';
+				var message =  ' \x10' + this.clantag(this.state.banner) + ' picked ' + picked + '. ';
 				if (this.state.pool.length > 1) {
 					if (this.state.banner == 'CT') this.state.banner = 'TERRORIST';
 					else this.state.banner = 'CT';
@@ -613,7 +613,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 						vetomaps.push('de_'+this.state.picked[i]);
 					}
 					setTimeout(function () {
-						this.start(vetomaps);
+						tag.start(vetomaps);
 					}, 10000);
 				}
 				this.chat(message);
@@ -639,17 +639,20 @@ function Server(address, pass, adminip, adminid, adminname) {
 			if (banned !== '') {
 				this.state.banned.push(banned);
 				var message =  ' \x10' + this.clantag(this.state.banner) + ' banned ' + banned + '. ';
-				if (this.state.pool.length > 3) {
+				if (this.state.pool.length > 1) {
 					if (this.state.banner == 'CT') this.state.banner = 'TERRORIST';
 					else this.state.banner = 'CT';
-					var nextcmd = (this.state.pool.length == 6 ? 'ban' : 'pick');
+					var nextcmd = ([6,2].includes(this.state.pool.length) ? 'ban' : 'pick');
 					message += this.clantag(this.state.banner) + ', \x06!' + nextcmd + '\x10 the next map. (\x06' + this.state.pool.join(', ') + '\x10)';
 				} else {
-					message += 'Starting a random map. (\x06' + this.state.pool.join(', ') + '\x10)';
-					var vetomap = 'de_' + getRandom(this.state.pool);
+					this.state.picked.push(this.state.pool[0]);
+					message += 'Starting a BO3 match. (\x06' + this.state.picked.join(', ') + '\x10)';
+					var vetomaps = [];
+					for (var i = 0; i < this.state.picked.length; i++) {
+						vetomaps.push('de_'+this.state.picked[i]);
+					}
 					setTimeout(function () {
-						tag.maps = [vetomap];
-						tag.rcon('changelevel '+vetomap);
+						tag.start(vetomaps);
 					}, 10000);
 				}
 				this.chat(message);
