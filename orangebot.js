@@ -270,12 +270,6 @@ s.on('message', function (msg, info) {
 		case 'startmatch':
 			if (isadmin || !servers[addr].get().live) {
 				servers[addr].start(param);
-				if (gotv[info.address][info.port] !== undefined && Object.keys(servers[addr].state.players).length >= 6) {
-					var teams = servers[addr].clantag('TERRORIST') + ' - ' + servers[addr].clantag('CT');
-					for (var i in nconf.get('irc:channels')) {
-						irc.say(nconf.get('irc:channels')[i], 'tissit, matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[info.address][info.port]);
-					}
-				}
 			}
 			break;
 		case 'force':
@@ -503,7 +497,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 	};
 	this.win = function () {
 		for (var i in nconf.get('irc:channels')) {
-			irc.say(nconf.get('irc:channels')[i], 'Matsi päättyi! (' + this.state.stats + ')');
+			irc.send('NOTICE', nconf.get('irc:channels')[i], 'Matsi päättyi! (' + this.state.stats + ')');
 		}
 		var message = this.state.stats + "\n" + this.state.maps.join(' ').replace(this.state.map, '*' + this.state.map + '*').replace(/de_/g, '') + "\n*Match ended*";
 		bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
@@ -665,6 +659,12 @@ function Server(address, pass, adminip, adminid, adminname) {
 				bot.sendMessage(groupId, '*Console@' + this.state.ip + ':' + this.state.port + "*\n" + message, {
 					parse_mode: 'Markdown'
 				});
+				if (gotv[this.state.ip][this.state.port] !== undefined && Object.keys(this.state.players).length >= 5) {
+					var teams = this.clantag('TERRORIST') + ' - ' + this.clantag('CT');
+					for (var i in nconf.get('irc:channels')) {
+						irc.send('NOTICE', nconf.get('irc:channels')[i], 'Matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[this.state.ip][this.state.port]);
+					}
+				}				
 				setTimeout(function () {
 					tag.chat(' \x054...');
 				}, 1000);
@@ -755,7 +755,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		this.rcon('logaddress_delall;log off;say \x10I\'m outta here!');
 	};
 	this.debug = function () {
-		this.rcon('say \x10round: ' + this.state.round + ' live: ' + this.state.live + ' paused: ' + this.state.paused + ' freeze: ' + this.state.freeze + ' knife: ' + this.state.knife + ' knifewinner: ' + this.state.knifewinner + ' ready: T:' + this.state.ready.TERRORIST + ' CT:' + this.state.ready.CT + ' unpause: T:' + this.state.unpause.TERRORIST + ' CT:' + this.state.unpause.CT);
+		this.rcon('say \x10round: ' + this.state.round + ' live: ' + this.state.live + ' paused: ' + this.state.paused + ' freeze: ' + this.state.freeze + ' knife: ' + this.state.knife + ' knifewinner: ' + this.state.knifewinner + ' ready: T:' + this.state.ready.TERRORIST + ' CT:' + this.state.ready.CT + ' unpause: T:' + this.state.unpause.TERRORIST + ' CT:' + this.state.unpause.CT + 'pool: ' + this.state.pool.join(','));
 		this.stats(true);
 	};
 	this.say = function (msg) {
@@ -803,6 +803,7 @@ setInterval(function () {
 			delete servers[i];
 			continue;
 		}
+		//console.log(servers[i].state);
 		if (!servers[i].state.live && servers[i].state.pool.length == 0) {
 			if (servers[i].state.knife) {
 				servers[i].rcon(WARMUP_KNIFE);
