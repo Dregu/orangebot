@@ -151,7 +151,7 @@ s.on('message', function (msg, info) {
 					admins64.push(conId64);
 				}
 			});
-		}		
+		}
 	}
 
 	// join team
@@ -318,6 +318,9 @@ s.on('message', function (msg, info) {
 		case 'ban':
 			servers[addr].ban(param, match.capture('user_team'));
 			break;
+		case 'pick':
+			servers[addr].pick(param, match.capture('user_team'));
+			break;
 		default:
 		}
 		servers[addr].lastlog = +new Date();
@@ -352,7 +355,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		live: false,
 		map: '',
 		maps: [],
-		knife: true,
+		knife: false,
 		score: [],
 		round: 0,
 		knifewinner: false,
@@ -373,6 +376,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		banner: '',
 		pool: [],
 		banned: [],
+		picked: [],
 		stats: ''
 	};
 	if (adminid !== undefined && tag.state.steamid.indexOf(adminid) == -1) {
@@ -574,8 +578,48 @@ function Server(address, pass, adminip, adminid, adminname) {
 		} else {
 			this.state.pool = pool.slice(0);
 			this.state.banned = [];
+			this.state.picked = [];
 			this.state.banner = getRandom(['CT', 'TERRORIST']);
 			this.chat(VETO.format(this.clantag(this.state.banner), this.state.pool.join(', ')));
+		}
+	};
+	this.pick = function (map, team) {
+		if (this.state.banner !== team) {
+			this.chat(' \x10It\'s not your turn, ' + this.clantag(team) + '!');
+			return;
+		}
+		map = map.join(' ');
+		var picked = '';
+		if ([5,4].includes(this.state.pool.length) && map.length > 2) {
+			for (var i = 0; i < this.state.pool.length; i++) {
+				if (this.state.pool[i].match(map)) {
+					picked = this.state.pool.splice(i, 1);
+					break;
+				}
+			}
+			if (picked !== '') {
+				this.state.picked.push(picked);
+				var message =  ' \x10' + this.clantag(this.state.banner) + ' picked ' + banned + '. ';
+				if (this.state.pool.length > 1) {
+					if (this.state.banner == 'CT') this.state.banner = 'TERRORIST';
+					else this.state.banner = 'CT';
+					var nextcmd = (this.state.pool.length == 4 ? 'pick' : 'ban');
+					message += this.clantag(this.state.banner) + ', \x06!' + nextcmd + '\x10 the next map. (\x06' + this.state.pool.join(', ') + '\x10)';
+				} else {
+					this.state.picked.push(this.state.pool[0]);
+					message += 'Starting a BO3 match. (\x06' + this.state.picked.join(', ') + '\x10)';
+					var vetomaps = [];
+					for (var i = 0; i < this.state.picked.length; i++) {
+						vetomaps.push('de_'+this.state.picked[i]);
+					}
+					setTimeout(function () {
+						this.start(vetomaps);
+					}, 10000);
+				}
+				this.chat(message);
+			}
+		} else {
+			this.chat(' \x10I don\'t undestand.');
 		}
 	};
 	this.ban = function (map, team) {
@@ -585,7 +629,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 		}
 		map = map.join(' ');
 		var banned = '';
-		if (this.state.pool.length > 3 && map.length > 2) {
+		if ([7,6,3,2].includes(this.state.pool.length) && map.length > 2) {
 			for (var i = 0; i < this.state.pool.length; i++) {
 				if (this.state.pool[i].match(map)) {
 					banned = this.state.pool.splice(i, 1);
@@ -598,7 +642,8 @@ function Server(address, pass, adminip, adminid, adminname) {
 				if (this.state.pool.length > 3) {
 					if (this.state.banner == 'CT') this.state.banner = 'TERRORIST';
 					else this.state.banner = 'CT';
-					message += this.clantag(this.state.banner) + ', \x06!ban\x10 the next map. (\x06' + this.state.pool.join(', ') + '\x10)';
+					var nextcmd = (this.state.pool.length == 6 ? 'ban' : 'pick');
+					message += this.clantag(this.state.banner) + ', \x06!' + nextcmd + '\x10 the next map. (\x06' + this.state.pool.join(', ') + '\x10)';
 				} else {
 					message += 'Starting a random map. (\x06' + this.state.pool.join(', ') + '\x10)';
 					var vetomap = 'de_' + getRandom(this.state.pool);
@@ -664,7 +709,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 					for (var i in nconf.get('irc:channels')) {
 						irc.send('NOTICE', nconf.get('irc:channels')[i], 'Matsi alkaa! (' + teams + ') GOTV osoitteessa ' + gotv[this.state.ip][this.state.port]);
 					}
-				}				
+				}
 				setTimeout(function () {
 					tag.chat(' \x054...');
 				}, 1000);
@@ -706,6 +751,7 @@ function Server(address, pass, adminip, adminid, adminname) {
 			}
 			tag.stats(false);
 			tag.warmup();
+			if (index == 2) tag.knife = true;
 		}, delay);
 	};
 	this.knife = function () {
